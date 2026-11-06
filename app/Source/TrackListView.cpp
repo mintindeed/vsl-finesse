@@ -172,6 +172,8 @@ private:
         menu.addItem (-1, "Scan for plug-ins...");
        #endif
         menu.addItem (-2, "Remove instrument", t->audio.plugin != nullptr);
+        menu.addSeparator();
+        menu.addItem (-3, "Save instrument details to Desktop", t->audio.plugin != nullptr);
 
         juce::Component::SafePointer<Row> safe (this);
         menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&pluginButton),
@@ -191,6 +193,16 @@ private:
         if (result == -1)
         {
             app.showPluginScanner (getTopLevelComponent());
+            return;
+        }
+        if (result == -3)
+        {
+            juce::String error;
+            const auto file = app.saveInstrumentDetails (*t, error);
+            if (file.existsAsFile())
+                file.revealToUser();
+            else
+                juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon, "Couldn't save the details", error);
             return;
         }
         if (result == -2)

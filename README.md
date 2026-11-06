@@ -20,13 +20,13 @@ brew install cmake         # once
 
 1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.
 2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins). The profile's range decides which notes are keyswitches: anything outside the playable range.
-3. **Set each articulation's patch type.** The Articulations list shows every keyswitch (or keyswitch combination) used in the file. For each one, choose the patch type you loaded in Synchron Player:
-   - **Velocity:** velocity picks the dynamic layer, CC1 does nothing (shorts, pizzicato...)
-   - **VelXF sus - MOD:** velocity shapes the attack, CC1 crossfades the sustain
-   - **VelXF - MOD:** CC1 crossfades the whole note
+3. **Choose instrument...** on the track and pick Synchron Player (Vienna instruments are listed first). Only the instrument you pick is loaded. **Edit** opens its window, where you load your Special Edition preset.
+4. **Pick the Synchron preset folder** your preset came from (right panel): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. That one choice decides how dynamics are written:
+   - **VelXF sus - MOD:** long notes crossfade with CC1, short notes follow velocity
+   - **VelXF - MOD:** every note crossfades with CC1. Velocities are left exactly as written, because in these presets velocity can pick an attack (e.g. Marcato's sustain/staccato attack)
+   - **Velocity:** velocity carries the dynamics, and no CC1 is written
 
-   Tick **Legato** for legato patches, so notes overlap and trigger the legato transitions. These choices are saved to your copy of the instrument profile, so you set them once per instrument.
-4. **Choose instrument...** on the track loads a plug-in (e.g. Synchron Player). The first time, use **Scan for plug-ins...** in that menu. **Edit** opens the plug-in's window, where you load your Special Edition preset.
+   The app remembers your last choice for new tracks. Notes written connected always overlap slightly, which triggers legato transitions in legato patches.
 5. **Play** (space bar). **Original / Finessed** (or the T key) switches between the untouched file and the performance, at the same position.
 6. Adjust the **Performance** sliders. Changes apply immediately (double-click a slider to reset it). **New variation** re-rolls the humanization.
 7. **Export Finessed MIDI...** writes `Name (Finessed).mid` next to the original. Drag it into Logic.
@@ -40,9 +40,9 @@ brew install cmake         # once
 | Clean up | Keyswitches are set aside untouched. Existing CCs are removed. Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
 | Phrases | Rests, long notes and (for winds/brass) breath length split the line into phrases. Each phrase gets a peak, chosen from its high and long notes. |
 | Dynamics | A phrase arch (grow to the peak, relax after), higher notes slightly louder, long notes slightly fuller. This becomes one smooth CC1 line through the whole part. |
-| Velocity | Follows CC1, plus small accents on strong beats and a little humanization. This is what Velocity patches respond to. |
-| Long notes | Crossfading patches get a gentle swell inside long notes, and the last note of a phrase tapers (CC1 and CC11). |
-| Timing | Small humanized timing. Legato patches get overlaps, repeated notes get a clean gap, and wind/brass phrases get a breath. Keyswitches always stay ahead of the note they switch. |
+| Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus small accents on strong beats and a little humanization. Otherwise left as written. |
+| Long notes | A gentle swell inside long notes (CC1, or CC11 in Velocity presets), and the last note of a phrase tapers (CC1 and CC11). |
+| Timing | Small humanized timing. Connected notes overlap slightly, repeated notes get a clean gap, and wind/brass phrases get a breath. Keyswitches always stay ahead of the note they switch. |
 
 The same file, settings and seed always produce the same result.
 
@@ -51,7 +51,7 @@ The same file, settings and seed always produce the same result.
 The engine also runs from Terminal, which is handy for batch work:
 
 ```bash
-vslp-finesse Violins.mid --instrument violins
+vslp-finesse Violins.mid --instrument violins --type velxf
 vslp-finesse Flute.mid -p my-flute.json -s settings.json -o out.mid
 vslp-finesse --list-instruments
 vslp-finesse --dump-profile violins > my-violins.json
@@ -69,12 +69,12 @@ Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON 
   "range": ["G2", "G6"],
   "keys": [ { "note": "C1", "level": 0 }, { "note": "C#2", "level": 1 } ],
   "articulations": [
-    { "keys": ["C1", "C#2"], "name": "Legato", "mode": "velxf-sus", "legato": true }
+    { "keys": ["C1", "C#2"], "name": "Long notes - Marcato" }
   ]
 }
 ```
 
-`level` is for presets that switch articulations with one key per level of the Synchron articulation tree. The articulation is then the combination of the latest key on each level. Leave everything at level 0 for one-key-per-articulation presets.
+Synchron presets switch articulations with one key per level of the articulation tree: by default each octave is one level (C1-B1 picks the articulation, C2-B2 the type), and the current articulation is the combination of the latest key on each level. `level` overrides that for a key.
 
 ## Project layout
 

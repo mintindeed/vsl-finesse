@@ -38,6 +38,8 @@ public:
     void setSettings (Track&, const vslp::Settings&);
     void saveDefaultSettings (const vslp::Settings&);
     vslp::Settings defaultSettings();
+    // The preset type last chosen becomes the default for new tracks.
+    void rememberPresetType (vslp::PresetType);
 
     // --- Plugins ------------------------------------------------------------
     // Installed instruments. On macOS this lists Audio Unit instruments
@@ -49,6 +51,11 @@ public:
                      juce::MemoryBlock state = {});
     void removePlugin (Track&);
     void showPluginWindow (Track&);
+
+    // Writes everything the instrument plug-in reports about itself (state,
+    // parameters, programs, readable text in its state) to a JSON file on the
+    // Desktop. Used to learn how Synchron Player stores its articulation tree.
+    juce::File saveInstrumentDetails (Track&, juce::String& error);
 
     // --- Sessions -------------------------------------------------------------
     bool saveSession (const juce::File&, juce::String& error);

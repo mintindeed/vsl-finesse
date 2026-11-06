@@ -7,21 +7,6 @@
 namespace vslp
 {
 
-// How a VSL patch turns MIDI into dynamics. These correspond to the three
-// kinds of patches in the Studio Special Editions:
-//
-//   Velocity      - note-on velocity picks the dynamic layer. CC1 does nothing.
-//   VelXFSustain  - "VelXF sus - MOD": velocity picks the attack, the mod wheel
-//                   (CC1) crossfades dynamic layers for the sustain portion.
-//   VelXF         - "VelXF - MOD": the mod wheel crossfades dynamic layers for
-//                   the whole note; velocity has little or no effect.
-enum class DynamicsMode
-{
-    Velocity,
-    VelXFSustain,
-    VelXF
-};
-
 enum class Family
 {
     Strings,
@@ -34,11 +19,6 @@ enum class Family
 struct Articulation
 {
     std::string name = "Default";
-    DynamicsMode mode = DynamicsMode::VelXFSustain;
-
-    // True for legato patches: consecutive notes are made to overlap so the
-    // player triggers its legato transitions.
-    bool legato = false;
 
     // Moves note-ons earlier (negative) or later (positive) to compensate for
     // slow-speaking samples. 0 = no change.
@@ -46,10 +26,10 @@ struct Articulation
 };
 
 // A keyswitch pitch and the level of the player's articulation tree it
-// belongs to. Synchron presets can use one key per level (e.g. C1 picks
-// "Long", C#2 picks the variation), so the current articulation is the
-// combination of the latest key on each level. Single-level presets just
-// leave everything at level 0.
+// belongs to. Synchron presets use one octave per level (e.g. C1-E1 pick the
+// articulation, C2-C#2 the type), so the current articulation is the
+// combination of the latest key on each level. Keys not listed here get
+// their octave as their level.
 struct KeyswitchKey
 {
     int pitch = 0;
@@ -105,8 +85,6 @@ struct InstrumentProfile
     bool preservesController (int cc) const;
 };
 
-const char* toString (DynamicsMode);
-std::optional<DynamicsMode> dynamicsModeFromString (const std::string&);
 const char* toString (Family);
 std::optional<Family> familyFromString (const std::string&);
 

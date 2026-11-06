@@ -45,6 +45,33 @@ struct Context
     Report report;
 
     const Articulation& articulationOf (size_t note) const { return articulations[(size_t) info[note].articulation]; }
+
+    bool isShort (size_t note) const { return info[note].duration * 1000.0 < settings.shortNoteMs; }
+
+    // Does CC1 drive this note's dynamic layers?
+    bool crossfades (size_t note) const
+    {
+        switch (settings.presetType)
+        {
+            case PresetType::VelXF:        return true;
+            case PresetType::VelXFSustain: return ! isShort (note);
+            case PresetType::Velocity:     return false;
+        }
+        return true;
+    }
+
+    // Is velocity this note's dynamic? If not, the written velocity is kept
+    // (it may select something else, such as an attack variant).
+    bool velocityIsDynamic (size_t note) const
+    {
+        switch (settings.presetType)
+        {
+            case PresetType::VelXF:        return false;
+            case PresetType::VelXFSustain: return isShort (note);
+            case PresetType::Velocity:     return true;
+        }
+        return false;
+    }
 };
 
 // Deterministic noise in [-1, 1].

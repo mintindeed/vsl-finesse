@@ -194,7 +194,15 @@ vslp::Settings AppContext::defaultSettings()
     const auto text = properties.getUserSettings()->getValue ("defaultSettings");
     if (text.isNotEmpty())
         vslp::io::settingsFromJson (juce::JSON::parse (text), s);
+    if (auto t = vslp::presetTypeFromString (properties.getUserSettings()->getValue ("presetType").toStdString()))
+        s.presetType = *t;
     return s;
+}
+
+void AppContext::rememberPresetType (vslp::PresetType t)
+{
+    properties.getUserSettings()->setValue ("presetType", juce::String (vslp::toString (t)));
+    properties.saveIfNeeded();
 }
 
 // --- Plugins ------------------------------------------------------------------
@@ -332,6 +340,100 @@ void AppContext::showPluginWindow (Track& t)
     auto* track = &t;
     pluginWindows[&t] = std::make_unique<PluginWindow> (editor, t.name + " - " + plugin->getName(),
                                                         [this, track] { closePluginWindow (track); });
+}
+
+namespace
+{
+// Readable text runs in a binary blob: ASCII and UTF-16LE, at least 4 characters.
+juce::StringArray readableStrings (const juce::MemoryBlock& block, int limit)
+{
+    juce::StringArray out;
+    const auto* d = static_cast<const uint8_t*> (block.getData());
+    const size_t n = block.getSize();
+    auto printable = [] (uint8_t c) { return c >= 32 && c < 127; };
+
+    std::string run;
+    for (size_t i = 0; i < n && out.size() < limit; ++i)
+    {
+        if (printable (d[i]))
+            run += (char) d[i];
+        else
+        {
+            if (run.size() >= 4)
+                out.add (juce::String (run));
+            run.clear();
+        }
+    }
+    if (run.size() >= 4)
+        out.add (juce::String (run));
+
+    for (size_t offset = 0; offset < 2; ++offset)
+    {
+        run.clear();
+        for (size_t i = offset; i + 1 < n && out.size() < limit; i += 2)
+        {
+            if (printable (d[i]) && d[i + 1] == 0)
+                run += (char) d[i];
+            else
+            {
+                if (run.size() >= 4)
+                    out.add ("utf16: " + juce::String (run));
+                run.clear();
+            }
+        }
+    }
+    return out;
+}
+} // namespace
+
+juce::File AppContext::saveInstrumentDetails (Track& t, juce::String& error)
+{
+    auto* plugin = t.audio.plugin.get();
+    if (plugin == nullptr)
+    {
+        error = "This track has no instrument loaded.";
+        return {};
+    }
+
+    auto* o = new juce::DynamicObject();
+    o->setProperty ("app", "VSL Performer " + juce::JUCEApplicationBase::getInstance()->getApplicationVersion());
+    o->setProperty ("plugin", plugin->getPluginDescription().createXml()->toString (juce::XmlElement::TextFormat().singleLine()));
+    o->setProperty ("track", t.name);
+
+    juce::Array<juce::var> programs;
+    for (int i = 0; i < plugin->getNumPrograms(); ++i)
+        programs.add (plugin->getProgramName (i));
+    o->setProperty ("programs", programs);
+    o->setProperty ("currentProgram", plugin->getCurrentProgram());
+
+    juce::Array<juce::var> params;
+    for (auto* p : plugin->getParameters())
+    {
+        auto* po = new juce::DynamicObject();
+        po->setProperty ("index", p->getParameterIndex());
+        po->setProperty ("name", p->getName (100));
+        po->setProperty ("label", p->getLabel());
+        po->setProperty ("value", p->getValue());
+        po->setProperty ("text", p->getCurrentValueAsText());
+        params.add (juce::var (po));
+    }
+    o->setProperty ("parameters", params);
+
+    juce::MemoryBlock state;
+    plugin->getStateInformation (state);
+    o->setProperty ("stateSize", (int) state.getSize());
+    o->setProperty ("strings", readableStrings (state, 20000));
+    o->setProperty ("state", state.toBase64Encoding());
+
+    const auto stamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d %H-%M-%S");
+    auto file = juce::File::getSpecialLocation (juce::File::userDesktopDirectory)
+                    .getChildFile ("VSL Performer details " + juce::File::createLegalFileName (plugin->getName()) + " " + stamp + ".json");
+    if (! file.replaceWithText (juce::JSON::toString (juce::var (o))))
+    {
+        error = "Couldn't write " + file.getFullPathName();
+        return {};
+    }
+    return file;
 }
 
 void AppContext::closePluginWindow (Track* t)

@@ -25,6 +25,7 @@ static void usage()
         "  -i, --instrument <id>       built-in instrument profile (default: generic)\n"
         "  -p, --profile <file.json>   instrument profile file (overrides --instrument)\n"
         "  -s, --settings <file.json>  settings file\n"
+        "  -t, --type <type>           Synchron preset type: velxf-sus (default), velxf or velocity\n"
         "      --intensity <0..2>      overall amount of shaping\n"
         "      --seed <n>              humanization seed\n"
         "      --list-instruments      show built-in profiles\n"
@@ -47,6 +48,7 @@ int main (int argc, char* argv[])
     bool quiet = false;
     std::optional<double> intensity;
     std::optional<uint32_t> seed;
+    std::optional<PresetType> presetType;
 
     for (int i = 0; i < args.size(); ++i)
     {
@@ -65,6 +67,16 @@ int main (int argc, char* argv[])
         else if (a == "-i" || a == "--instrument")    instrumentId = next();
         else if (a == "-p" || a == "--profile")       profileFile = next();
         else if (a == "-s" || a == "--settings")      settingsFile = next();
+        else if (a == "-t" || a == "--type")
+        {
+            const auto text = next().toStdString();
+            presetType = presetTypeFromString (text);
+            if (! presetType)
+            {
+                std::cerr << "unknown preset type '" << text << "' (use velxf-sus, velxf or velocity)\n";
+                return 2;
+            }
+        }
         else if (a == "--intensity")                  intensity = next().getDoubleValue();
         else if (a == "--seed")                       seed = (uint32_t) next().getLargeIntValue();
         else if (a == "-q" || a == "--quiet")         quiet = true;
@@ -134,6 +146,7 @@ int main (int argc, char* argv[])
     }
     if (intensity) settings.intensity = *intensity;
     if (seed)      settings.seed = *seed;
+    if (presetType) settings.presetType = *presetType;
 
     auto read = io::readMidiFile (inputFile);
     if (! read.ok)
@@ -154,7 +167,7 @@ int main (int argc, char* argv[])
     if (! quiet)
     {
         const auto& r = result.report;
-        std::cout << "Part:        " << result.part.name << " (" << profile.name << ")\n"
+        std::cout << "Part:        " << result.part.name << " (" << profile.name << ", " << displayName (settings.presetType) << ")\n"
                   << "Notes:       " << r.notesIn << " in, " << r.notesOut << " out ("
                   << r.chordNotesRemoved << " chord notes removed, " << r.overlapsTrimmed << " overlaps trimmed)\n"
                   << "Keyswitches: " << r.keyswitchesIn << " kept\n"

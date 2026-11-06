@@ -44,13 +44,12 @@ void applyTiming (Context& ctx)
     {
         auto& note = notes[i];
         const auto& next = notes[i + 1];
-        const auto& art = ctx.articulationOf (i);
-        const auto& nextArt = ctx.articulationOf (i + 1);
         const Tick minLength = std::max<Tick> (1, ticks (note.start, s.minNoteMs));
 
-        // Same-pitch notes can't overlap (the note-off would cut the new note),
-        // so repeated pitches are re-articulated even in legato.
-        const bool connect = art.legato && nextArt.legato && ! info[i].breathAfter
+        // Notes written connected overlap slightly: legato patches play their
+        // transitions, mono patches hand over to the next note. Same-pitch
+        // notes can't overlap (the note-off would cut the new note).
+        const bool connect = ! info[i].breathAfter
                              && next.pitch != note.pitch
                              && info[i].gapAfter * 1000.0 <= s.legatoMaxGapMs;
         if (connect)

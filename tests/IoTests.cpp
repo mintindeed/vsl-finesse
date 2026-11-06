@@ -65,7 +65,7 @@ TEST_CASE ("profiles round-trip through JSON, with note names")
     InstrumentProfile p = violinProfile();
     p.name = "Violins";
     p.keys = { { 36, 0 }, { 49, 1 } };
-    p.articulations = { { { 36, 49 }, { "Legato", DynamicsMode::VelXFSustain, true, -20.0 } } };
+    p.articulations = { { { 36, 49 }, { "Legato", -20.0 } } };
     p.maxBreathSeconds = 0.0;
 
     const auto json = io::profileToJson (p);
@@ -78,18 +78,18 @@ TEST_CASE ("profiles round-trip through JSON, with note names")
     CHECK (back.keys.size() == 2);
     REQUIRE (back.articulations.size() == 1);
     CHECK (back.articulations[0].keys == std::vector<int> { 36, 49 });
-    CHECK (back.articulations[0].articulation.legato);
+    CHECK (back.articulations[0].articulation.name == "Legato");
     CHECK (back.articulations[0].articulation.attackOffsetMs == doctest::Approx (-20.0));
 }
 
 TEST_CASE ("bad profiles are rejected with a message")
 {
     juce::var json;
-    REQUIRE (juce::JSON::parse (R"({ "articulations": [ { "keys": ["C1"], "name": "X", "mode": "loud" } ] })", json).wasOk());
+    REQUIRE (juce::JSON::parse (R"({ "articulations": [ { "keys": ["H9"], "name": "X" } ] })", json).wasOk());
     InstrumentProfile p;
     std::string error;
     CHECK_FALSE (io::profileFromJson (json, p, error));
-    CHECK (error.find ("loud") != std::string::npos);
+    CHECK (error.find ("H9") != std::string::npos);
 }
 
 TEST_CASE ("settings round-trip through JSON")
@@ -99,6 +99,7 @@ TEST_CASE ("settings round-trip through JSON")
     s.seed = 42;
     s.useInputVelocity = false;
     s.chords = ChordResolution::KeepLowest;
+    s.presetType = PresetType::Velocity;
 
     Settings back;
     io::settingsFromJson (io::settingsToJson (s), back);
@@ -106,6 +107,7 @@ TEST_CASE ("settings round-trip through JSON")
     CHECK (back.seed == 42);
     CHECK_FALSE (back.useInputVelocity);
     CHECK (back.chords == ChordResolution::KeepLowest);
+    CHECK ((back.presetType == PresetType::Velocity)); // extra parentheses: doctest would pick up vslp::toString
 }
 
 TEST_CASE ("built-in profiles load")

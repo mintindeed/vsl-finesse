@@ -39,7 +39,7 @@ struct CurveBuilder
         return long (it - knots.begin()) - 1;
     }
 
-    bool crossfades (size_t i) const { return ctx.articulationOf (i).mode != DynamicsMode::Velocity; }
+    bool crossfades (size_t i) const { return ctx.crossfades (i); }
 
     double bump (size_t i, double t) const
     {
@@ -74,12 +74,23 @@ struct CurveBuilder
     {
         const auto& s = ctx.settings;
         const auto& in = ctx.info[i];
-        if (! in.phraseEnd || in.taper <= 0.0)
-            return s.expressionBase;
-        // Express the taper in CC11 steps: up to half the base-to-min range at full intensity.
         const double range = std::max (0, s.expressionBase - s.expressionMin);
-        const double depth = std::min (1.0, in.taper / 0.18) * 0.5 * range;
-        return s.expressionBase - depth * taperAmount (i, t);
+        double v = s.expressionBase;
+
+        // Where CC1 can't shape a long note (Velocity presets), CC11 does:
+        // the note starts a little below the resting level and grows into it.
+        if (! crossfades (i) && in.swell > 0.0 && in.duration > 0.0)
+        {
+            const double u = clamp01 ((t - in.onset) / in.duration);
+            const double s2 = std::sin (u * 3.14159265358979);
+            v -= std::min (1.0, in.swell / 0.08) * 0.35 * range * (1.0 - s2 * s2);
+        }
+
+        // Phrase-end taper: up to half the base-to-min range at full intensity.
+        if (in.phraseEnd && in.taper > 0.0)
+            v -= std::min (1.0, in.taper / 0.18) * 0.5 * range * taperAmount (i, t);
+
+        return v;
     }
 
     // Generic segment evaluation shared by both curves.
@@ -162,6 +173,7 @@ void writeControllers (Context& ctx)
         return;
 
     CurveBuilder curve (ctx);
+    const bool writeDynamics = s.presetType != PresetType::Velocity && profile.dynamicsCC >= 0;
     const int channel = dominantChannel (part);
 
     // Sample times: a regular grid plus every knot, so onset values are exact.
@@ -185,8 +197,9 @@ void writeControllers (Context& ctx)
     {
         const Tick tick = std::max<Tick> (0, (Tick) std::llround (tempo.tickAt (t)));
 
+        // Velocity presets ignore CC1, so none is written.
         const int dyn = std::clamp ((int) std::lround (curve.dynamicsAt (t) * 127.0), s.dynamicsMin, s.dynamicsMax);
-        if (dyn != lastDyn)
+        if (writeDynamics && dyn != lastDyn)
         {
             out.push_back ({ tick, profile.dynamicsCC, dyn, channel });
             lastDyn = dyn;

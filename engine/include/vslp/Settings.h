@@ -1,9 +1,30 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
+#include <string>
 
 namespace vslp
 {
+
+// The kind of Synchron preset the part is played with. These are the three
+// preset folders of the Studio Special Editions:
+//
+//   VelXFSustain - "VelXF sus - MOD": sustained patches crossfade dynamic
+//                  layers with the mod wheel (CC1); short patches follow velocity.
+//   VelXF        - "VelXF - MOD": every patch crossfades with CC1. Velocity is
+//                  not a dynamic (it can pick an attack), so it is left alone.
+//   Velocity     - "Velocity": velocity picks the dynamic layer; CC1 does nothing.
+enum class PresetType
+{
+    VelXFSustain,
+    VelXF,
+    Velocity
+};
+
+const char* toString (PresetType);
+const char* displayName (PresetType);
+std::optional<PresetType> presetTypeFromString (const std::string&);
 
 enum class ChordResolution
 {
@@ -15,6 +36,12 @@ enum class ChordResolution
 // the "...Amount" controls go up to 2 for exaggerated results.
 struct Settings
 {
+    PresetType presetType = PresetType::VelXFSustain;
+
+    // Notes shorter than this count as "short" (staccato and similar), which
+    // follow velocity in VelXF sus presets.
+    double shortNoteMs = 300.0;
+
     // Master amount of shaping applied on top of the base dynamic.
     double intensity = 0.6;
 
@@ -46,8 +73,11 @@ struct Settings
     int expressionMin = 60;     // lowest CC11 used by tapers
 
     // Timing.
-    double legatoOverlapMs = 40.0;   // overlap added between legato notes
-    double legatoMaxGapMs = 80.0;    // gaps up to this are bridged in legato
+    // Notes written connected (gap up to legatoMaxGapMs) overlap by
+    // legatoOverlapMs, which triggers legato transitions in legato patches;
+    // Synchron's mono patches simply hand over to the next note.
+    double legatoOverlapMs = 40.0;
+    double legatoMaxGapMs = 80.0;
     double repeatedNoteGapMs = 20.0; // gap before a repeated pitch (non-legato)
     double minNoteMs = 25.0;         // notes are never shortened below this
 

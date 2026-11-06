@@ -68,8 +68,6 @@ void shapeDynamics (Context& ctx)
         for (size_t i = p.firstNote; i <= p.lastNote; ++i)
         {
             auto& in = info[i];
-            const auto& art = ctx.articulationOf (i);
-
             const double arch = singleNote ? 0.0 : archAmount * archShape (in.phrasePosition, peakPosition);
             const double highLoud = std::clamp (0.05 * I * s.highLoudAmount * (notes[i].pitch - meanPitch) / 12.0, -0.08, 0.08);
             const double relDur = std::clamp (std::log2 (std::max (0.01, in.duration) / medianDur), -2.0, 2.0);
@@ -82,13 +80,16 @@ void shapeDynamics (Context& ctx)
             const double human = 0.03 * std::clamp (s.humanizeVelocity, 0.0, 1.0) * noise (s.seed, i, 1);
             in.velocity = clamp01 (in.level + accent + human);
 
-            const int vel = (int) std::lround (in.velocity * 127.0);
-            notes[i].velocity = std::clamp (vel, std::max (1, s.velocityMin), std::min (127, s.velocityMax));
+            if (ctx.velocityIsDynamic (i))
+            {
+                const int vel = (int) std::lround (in.velocity * 127.0);
+                notes[i].velocity = std::clamp (vel, std::max (1, s.velocityMin), std::min (127, s.velocityMax));
+            }
 
-            // Long notes swell (except phrase-final ones, which taper).
-            const bool crossfades = art.mode != DynamicsMode::Velocity;
+            // Long notes swell (except phrase-final ones, which taper):
+            // with CC1 in crossfading presets, with CC11 in Velocity presets.
             const double longThreshold = 0.7;
-            if (crossfades && in.duration >= longThreshold && ! in.phraseEnd)
+            if (in.duration >= longThreshold && ! in.phraseEnd)
             {
                 const double size = std::clamp ((in.duration - longThreshold) / 2.0 + 0.4, 0.0, 1.0);
                 const double variation = 1.0 + 0.25 * noise (s.seed, i, 3);

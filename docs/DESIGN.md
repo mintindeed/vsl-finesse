@@ -6,16 +6,17 @@
 - **One instrument per MIDI file.** Notes sounding at once are treated as mistakes: chords keep their top note (configurable), and overlaps are trimmed. Legato overlaps are added back deliberately afterwards, only for legato patches.
 - **Keyswitches are never written.** Notes outside the instrument's range (or listed in the profile's `keys`) are keyswitches. They're preserved; the only change is moving one a few milliseconds earlier when timing humanization would otherwise put its note first.
 - **Existing CCs are wiped**, except controllers listed in the profile's `preservedControllers`.
-- **The articulation decides the strategy, not the notes.** Each keyswitch (combination) maps to a patch type:
+- **The Synchron preset folder decides the strategy.** It's one choice per track:
 
-  | Type | CC1 | Velocity | Inner-note shaping |
+  | Preset folder | CC1 | Velocity | Long-note swells |
   |---|---|---|---|
-  | Velocity | ignored by the patch | picks the layer | none (CC11 tapers only) |
-  | VelXF sus - MOD | crossfades the sustain | shapes the attack | swells, phrase-end tapers |
-  | VelXF - MOD | crossfades the whole note | little effect | swells, phrase-end tapers |
+  | VelXF sus - MOD | drives long notes | the dynamic for short notes, kept as written for long ones | CC1 |
+  | VelXF - MOD | drives every note | kept as written (it can select an attack variant) | CC1 |
+  | Velocity | not written | the dynamic for every note | CC11 |
 
-  CC1 is still written as one continuous line through Velocity passages, so it already has the right value when the music switches to a crossfading articulation. Velocity always tracks the CC1 level at the note-on, so the attack (VelXF sus) matches the sustain.
-- **CC11 only dips.** It rests at `expressionBase` (127) and is used to fade phrase endings below the softest dynamic layer. Overall loudness stays where the mixer expects it.
+  "Short" means shorter than `shortNoteMs` (300 ms). CC1 is one continuous line through the part.
+- **Connected notes always overlap slightly** (`legatoOverlapMs`): legato patches play their transitions, and Synchron's mono patches hand over to the next note. Repeated pitches never overlap.
+- **CC11 only dips.** It rests at `expressionBase` (127) and is used to fade phrase endings below the softest dynamic layer (and, in Velocity presets, to shape long notes). Overall loudness stays where the mixer expects it.
 - **CC values arrive before their note** (`ccLeadMs`, 15 ms), because the player reads CC1 at note-on.
 - **Deterministic.** All randomness is hashed from the seed and the note index, so playback, export and re-export match.
 

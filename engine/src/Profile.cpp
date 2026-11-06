@@ -1,4 +1,5 @@
 #include "vslp/Profile.h"
+#include "vslp/Settings.h"
 
 #include <algorithm>
 #include <cctype>
@@ -20,7 +21,7 @@ int InstrumentProfile::levelOf (int pitch) const
     for (const auto& k : keys)
         if (k.pitch == pitch)
             return k.level;
-    return 0;
+    return pitch / 12; // one octave per level, as in Synchron presets
 }
 
 const ArticulationMapping* InstrumentProfile::findArticulation (const std::vector<int>& combination) const
@@ -55,29 +56,37 @@ bool InstrumentProfile::preservesController (int cc) const
     return std::find (preservedControllers.begin(), preservedControllers.end(), cc) != preservedControllers.end();
 }
 
-const char* toString (DynamicsMode m)
+const char* toString (PresetType t)
 {
-    switch (m)
+    switch (t)
     {
-        case DynamicsMode::Velocity:     return "velocity";
-        case DynamicsMode::VelXFSustain: return "velxf-sus";
-        case DynamicsMode::VelXF:        return "velxf";
+        case PresetType::VelXFSustain: return "velxf-sus";
+        case PresetType::VelXF:        return "velxf";
+        case PresetType::Velocity:     return "velocity";
     }
     return "velxf-sus";
 }
 
-static std::string lower (std::string s)
+const char* displayName (PresetType t)
 {
-    std::transform (s.begin(), s.end(), s.begin(), [] (unsigned char c) { return char (std::tolower (c)); });
-    return s;
+    switch (t)
+    {
+        case PresetType::VelXFSustain: return "VelXF sus - MOD";
+        case PresetType::VelXF:        return "VelXF - MOD";
+        case PresetType::Velocity:     return "Velocity";
+    }
+    return "VelXF sus - MOD";
 }
 
-std::optional<DynamicsMode> dynamicsModeFromString (const std::string& text)
+std::optional<PresetType> presetTypeFromString (const std::string& text)
 {
-    const auto s = lower (text);
-    if (s == "velocity")                                    return DynamicsMode::Velocity;
-    if (s == "velxf-sus" || s == "velxf sus" || s == "velxfsustain") return DynamicsMode::VelXFSustain;
-    if (s == "velxf")                                       return DynamicsMode::VelXF;
+    std::string s;
+    for (char c : text)
+        if (std::isalnum ((unsigned char) c))
+            s += (char) std::tolower ((unsigned char) c);
+    if (s == "velxfsus" || s == "velxfsusmod" || s == "velxfsustain") return PresetType::VelXFSustain;
+    if (s == "velxf" || s == "velxfmod")                             return PresetType::VelXF;
+    if (s == "velocity")                                             return PresetType::Velocity;
     return std::nullopt;
 }
 
@@ -92,6 +101,12 @@ const char* toString (Family f)
         case Family::Other:      return "other";
     }
     return "other";
+}
+
+static std::string lower (std::string s)
+{
+    std::transform (s.begin(), s.end(), s.begin(), [] (unsigned char c) { return char (std::tolower (c)); });
+    return s;
 }
 
 std::optional<Family> familyFromString (const std::string& text)

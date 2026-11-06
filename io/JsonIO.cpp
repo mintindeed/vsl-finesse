@@ -31,8 +31,6 @@ juce::var articulationToJson (const Articulation& a)
 {
     auto* o = new juce::DynamicObject();
     o->setProperty ("name", juce::String (a.name));
-    o->setProperty ("mode", juce::String (toString (a.mode)));
-    o->setProperty ("legato", a.legato);
     if (std::abs (a.attackOffsetMs) > 1.0e-9)
         o->setProperty ("attackOffsetMs", a.attackOffsetMs);
     return juce::var (o);
@@ -47,18 +45,8 @@ bool articulationFromJson (const juce::var& v, Articulation& a, std::string& err
     }
     if (v.hasProperty ("name"))
         a.name = v["name"].toString().toStdString();
-    if (v.hasProperty ("mode"))
-    {
-        const auto mode = dynamicsModeFromString (v["mode"].toString().toStdString());
-        if (! mode)
-        {
-            error = "unknown mode '" + v["mode"].toString().toStdString() + "' (use velocity, velxf-sus or velxf)";
-            return false;
-        }
-        a.mode = *mode;
-    }
-    if (v.hasProperty ("legato"))
-        a.legato = (bool) v["legato"];
+    // "mode" and "legato" (from older versions) are ignored: the patch type
+    // is now chosen per track, and connected notes always overlap.
     if (v.hasProperty ("attackOffsetMs"))
         a.attackOffsetMs = (double) v["attackOffsetMs"];
     return true;
@@ -270,7 +258,7 @@ bool saveProfile (const InstrumentProfile& p, const juce::File& file, std::strin
     X (humanizeVelocity) X (humanizeTimingMs) \
     X (velocityMin) X (velocityMax) X (dynamicsMin) X (dynamicsMax) X (expressionBase) X (expressionMin) \
     X (legatoOverlapMs) X (legatoMaxGapMs) X (repeatedNoteGapMs) X (minNoteMs) \
-    X (ccIntervalMs) X (ccLeadMs) X (breathMs)
+    X (ccIntervalMs) X (ccLeadMs) X (breathMs) X (shortNoteMs)
 
 juce::var settingsToJson (const Settings& s)
 {
@@ -279,6 +267,7 @@ juce::var settingsToJson (const Settings& s)
     VSLP_SETTINGS_FIELDS (X)
 #undef X
     o->setProperty ("seed", (juce::int64) s.seed);
+    o->setProperty ("presetType", juce::String (toString (s.presetType)));
     o->setProperty ("chords", s.chords == ChordResolution::KeepHighest ? "keep-highest" : "keep-lowest");
     return juce::var (o);
 }
@@ -293,6 +282,9 @@ void settingsFromJson (const juce::var& v, Settings& s)
 #undef X
     if (v.hasProperty ("seed"))
         s.seed = (uint32_t) (juce::int64) v["seed"];
+    if (v.hasProperty ("presetType"))
+        if (auto t = presetTypeFromString (v["presetType"].toString().toStdString()))
+            s.presetType = *t;
     if (v.hasProperty ("chords"))
         s.chords = v["chords"].toString() == "keep-lowest" ? ChordResolution::KeepLowest : ChordResolution::KeepHighest;
 }

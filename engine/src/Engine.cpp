@@ -83,16 +83,6 @@ void assignArticulations (Context& ctx)
         u.mapped = u.keys.empty() || profile.findArticulation (u.keys) != nullptr;
         u.articulation = ctx.articulations[a].name;
         ctx.report.articulations.push_back (u);
-
-        if (! u.mapped)
-        {
-            std::string names;
-            for (int key : u.keys)
-                names += (names.empty() ? "" : " + ") + noteName (key);
-            ctx.report.warnings.push_back ("Keyswitch " + names + " isn't mapped in the instrument profile - treating it as '"
-                                           + profile.unmappedArticulation.name + "' ("
-                                           + toString (profile.unmappedArticulation.mode) + ").");
-        }
     }
 }
 

@@ -17,67 +17,6 @@ juce::String keysText (const std::vector<int>& keys)
     return names.joinIntoString (" + ");
 }
 
-int modeToId (vslp::DynamicsMode m)
-{
-    switch (m)
-    {
-        case vslp::DynamicsMode::Velocity:     return 1;
-        case vslp::DynamicsMode::VelXFSustain: return 2;
-        case vslp::DynamicsMode::VelXF:        return 3;
-    }
-    return 2;
-}
-
-vslp::DynamicsMode idToMode (int id)
-{
-    return id == 1 ? vslp::DynamicsMode::Velocity : id == 3 ? vslp::DynamicsMode::VelXF : vslp::DynamicsMode::VelXFSustain;
-}
-
-// The articulation the profile currently uses for a combination.
-vslp::Articulation articulationFor (const vslp::InstrumentProfile& p, const std::vector<int>& keys, bool& mapped)
-{
-    mapped = true;
-    if (keys.empty())
-        return p.defaultArticulation;
-    auto sorted = keys;
-    std::sort (sorted.begin(), sorted.end());
-    for (const auto& m : p.articulations)
-    {
-        auto mk = m.keys;
-        std::sort (mk.begin(), mk.end());
-        if (mk == sorted)
-            return m.articulation;
-    }
-    mapped = false;
-    auto a = p.resolve (keys);
-    return a;
-}
-
-void setArticulation (vslp::InstrumentProfile& p, const std::vector<int>& keys, const vslp::Articulation& a)
-{
-    if (keys.empty())
-    {
-        p.defaultArticulation = a;
-        return;
-    }
-    auto sorted = keys;
-    std::sort (sorted.begin(), sorted.end());
-    for (auto& m : p.articulations)
-    {
-        auto mk = m.keys;
-        std::sort (mk.begin(), mk.end());
-        if (mk == sorted)
-        {
-            m.articulation = a;
-            return;
-        }
-    }
-    p.articulations.push_back ({ sorted, a });
-    for (int k : sorted)
-        if (std::none_of (p.keys.begin(), p.keys.end(), [k] (const auto& kk) { return kk.pitch == k; }))
-            p.keys.push_back ({ k, 0 });
-}
-
 struct SliderSpec
 {
     const char* label;
@@ -91,14 +30,14 @@ const SliderSpec sliderSpecs[] = {
     { "Intensity",          &vslp::Settings::intensity,             0.0, 2.0, 0.01, "",    "Overall amount of shaping on top of the base dynamic" },
     { "Dynamic offset",     &vslp::Settings::levelOffset,          -0.5, 0.5, 0.01, "",    "Raise or lower the whole part's dynamic" },
     { "Phrase arch",        &vslp::Settings::phraseArchAmount,      0.0, 2.0, 0.01, "",    "Grow towards each phrase's peak and relax after it" },
-    { "Long-note swells",   &vslp::Settings::longNoteSwellAmount,   0.0, 2.0, 0.01, "",    "Gentle swell inside long notes (crossfading patches only)" },
+    { "Long-note swells",   &vslp::Settings::longNoteSwellAmount,   0.0, 2.0, 0.01, "",    "Gentle swell inside long notes (CC1, or CC11 in Velocity presets)" },
     { "Phrase-end taper",   &vslp::Settings::phraseEndTaperAmount,  0.0, 2.0, 0.01, "",    "Fade the last note of each phrase (CC1 and CC11)" },
-    { "Metric accents",     &vslp::Settings::metricAccentAmount,    0.0, 2.0, 0.01, "",    "Slightly stronger velocity on downbeats and beats" },
+    { "Metric accents",     &vslp::Settings::metricAccentAmount,    0.0, 2.0, 0.01, "",    "Slightly stronger velocity on downbeats (where velocity is the dynamic)" },
     { "Higher = louder",    &vslp::Settings::highLoudAmount,        0.0, 2.0, 0.01, "",    "Higher notes in a phrase a little louder" },
     { "Humanize velocity",  &vslp::Settings::humanizeVelocity,      0.0, 1.0, 0.01, "",    "Small random velocity variation (repeatable via the seed)" },
     { "Humanize timing",    &vslp::Settings::humanizeTimingMs,      0.0, 30.0, 0.5, " ms", "Maximum random shift of note starts" },
-    { "Legato overlap",     &vslp::Settings::legatoOverlapMs,       0.0, 150.0, 1.0, " ms", "How far legato notes overlap the next one (triggers legato transitions)" },
-    { "Legato bridges gaps", &vslp::Settings::legatoMaxGapMs,       0.0, 300.0, 1.0, " ms", "Gaps up to this long are still connected in legato" },
+    { "Note overlap",       &vslp::Settings::legatoOverlapMs,       0.0, 150.0, 1.0, " ms", "Connected notes overlap by this much, which triggers legato transitions in legato patches" },
+    { "Connect gaps up to", &vslp::Settings::legatoMaxGapMs,        0.0, 300.0, 1.0, " ms", "Notes with gaps up to this long count as connected" },
 };
 
 class SectionHeader : public juce::Component
@@ -122,101 +61,33 @@ public:
 class ArticulationRow : public juce::Component
 {
 public:
-    ArticulationRow()
-    {
-        addAndMakeVisible (keysLabel);
-        keysLabel.setFont (juce::FontOptions (12.0f, juce::Font::bold));
-        keysLabel.setColour (juce::Label::textColourId, theme::text);
-
-        addAndMakeVisible (countLabel);
-        countLabel.setFont (juce::FontOptions (11.0f));
-        countLabel.setColour (juce::Label::textColourId, theme::textDim);
-        countLabel.setJustificationType (juce::Justification::centredRight);
-
-        addAndMakeVisible (nameEditor);
-        nameEditor.setTextToShowWhenEmpty ("Name, e.g. Sustain", theme::textDim);
-        nameEditor.onReturnKey = [this] { commit(); };
-        nameEditor.onFocusLost = [this] { commit(); };
-
-        addAndMakeVisible (modeBox);
-        modeBox.addItem ("Velocity", 1);
-        modeBox.addItem ("VelXF sus - MOD", 2);
-        modeBox.addItem ("VelXF - MOD", 3);
-        modeBox.setTooltip ("Velocity: velocity picks the dynamic layer, CC1 does nothing.\n"
-                            "VelXF sus - MOD: velocity shapes the attack, CC1 crossfades the sustain.\n"
-                            "VelXF - MOD: CC1 crossfades the whole note.");
-        modeBox.onChange = [this] { commit(); };
-
-        addAndMakeVisible (legatoToggle);
-        legatoToggle.setTooltip ("A legato patch: connect consecutive notes so the player plays its legato transitions");
-        legatoToggle.onClick = [this] { commit(); };
-    }
-
-    void set (const vslp::ArticulationUsage& usage, const vslp::Articulation& a, bool mapped, int colourIndex)
+    void set (const vslp::ArticulationUsage& usage, int colourIndex)
     {
         keys = usage.keys;
+        text = keysText (usage.keys);
+        count = juce::String (usage.notes) + (usage.notes == 1 ? " note" : " notes");
         colour = theme::articulation (colourIndex);
-        keysLabel.setText (keysText (usage.keys), juce::dontSendNotification);
-        countLabel.setText (juce::String (usage.notes) + (usage.notes == 1 ? " note" : " notes") + (mapped ? "" : "  - not set"),
-                            juce::dontSendNotification);
-        countLabel.setColour (juce::Label::textColourId, mapped ? theme::textDim : theme::warning);
-        if (! nameEditor.hasKeyboardFocus (true))
-            nameEditor.setText (mapped ? juce::String (a.name) : juce::String(), juce::dontSendNotification);
-        modeBox.setSelectedId (modeToId (a.mode), juce::dontSendNotification);
-        legatoToggle.setToggleState (a.legato, juce::dontSendNotification);
-        current = a;
-        isMapped = mapped;
         repaint();
     }
 
     void paint (juce::Graphics& g) override
     {
-        g.setColour (theme::panelRaised);
-        g.fillRoundedRectangle (getLocalBounds().toFloat().reduced (0.0f, 2.0f), 4.0f);
+        auto r = getLocalBounds();
         g.setColour (colour);
-        g.fillRoundedRectangle (juce::Rectangle<float> (0.0f, 2.0f, 4.0f, (float) getHeight() - 4.0f), 2.0f);
-    }
-
-    void resized() override
-    {
-        auto r = getLocalBounds().reduced (10, 6);
-        auto top = r.removeFromTop (18);
-        countLabel.setBounds (top.removeFromRight (110));
-        keysLabel.setBounds (top);
-        r.removeFromTop (4);
-        auto bottom = r.removeFromTop (24);
-        legatoToggle.setBounds (bottom.removeFromRight (72));
-        bottom.removeFromRight (6);
-        modeBox.setBounds (bottom.removeFromRight (140));
-        bottom.removeFromRight (6);
-        nameEditor.setBounds (bottom);
+        g.fillRoundedRectangle (r.removeFromLeft (12).withSizeKeepingCentre (10, 10).toFloat(), 2.0f);
+        r.removeFromLeft (8);
+        g.setFont (juce::FontOptions (12.0f));
+        g.setColour (theme::textDim);
+        g.drawText (count, r, juce::Justification::centredRight);
+        g.setColour (theme::text);
+        g.drawText (text, r, juce::Justification::centredLeft);
     }
 
     std::vector<int> keys;
-    std::function<void (const std::vector<int>&, const vslp::Articulation&)> onChange;
 
 private:
-    void commit()
-    {
-        auto a = current;
-        const auto name = nameEditor.getText().trim();
-        a.name = name.isNotEmpty() ? name.toStdString() : keysText (keys).toStdString();
-        a.mode = idToMode (modeBox.getSelectedId());
-        a.legato = legatoToggle.getToggleState();
-        if (isMapped && a.name == current.name && a.mode == current.mode && a.legato == current.legato)
-            return;
-        current = a;
-        if (onChange)
-            onChange (keys, a);
-    }
-
+    juce::String text, count;
     juce::Colour colour;
-    vslp::Articulation current;
-    bool isMapped = false;
-    juce::Label keysLabel, countLabel;
-    juce::TextEditor nameEditor;
-    juce::ComboBox modeBox;
-    juce::ToggleButton legatoToggle { "Legato" };
 };
 
 // ---------------------------------------------------------------------------
@@ -242,8 +113,35 @@ public:
             l->setFont (juce::FontOptions (12.0f));
             l->setColour (juce::Label::textColourId, theme::textDim);
         }
-        articulationHint.setText ("Pick the patch type for each keyswitch used in the file. "
-                                  "The app never adds or changes keyswitches.", juce::dontSendNotification);
+        articulationHint.setText ("Keyswitches in the file (colours match the notes). "
+                                  "They're kept exactly as written.", juce::dontSendNotification);
+
+        addAndMakeVisible (presetLabel);
+        presetLabel.setFont (juce::FontOptions (12.0f));
+        presetLabel.setColour (juce::Label::textColourId, theme::textDim);
+        presetLabel.setText ("Synchron preset folder", juce::dontSendNotification);
+
+        const vslp::PresetType types[] = { vslp::PresetType::VelXFSustain, vslp::PresetType::VelXF, vslp::PresetType::Velocity };
+        for (int i = 0; i < 3; ++i)
+        {
+            auto* b = presetButtons.add (new juce::TextButton (vslp::displayName (types[i])));
+            b->setClickingTogglesState (true);
+            b->setRadioGroupId (2001);
+            b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
+            b->setConnectedEdges ((i > 0 ? juce::Button::ConnectedOnLeft : 0) | (i < 2 ? juce::Button::ConnectedOnRight : 0));
+            const auto type = types[i];
+            b->onClick = [this, b, type] {
+                if (! b->getToggleState() || pending.presetType == type)
+                    return;
+                pending.presetType = type;
+                app.rememberPresetType (type);
+                settingsChanged();
+            };
+            addAndMakeVisible (b);
+        }
+        presetButtons[0]->setTooltip ("01 VelXF sus - MOD: long notes crossfade with CC1, short notes follow velocity");
+        presetButtons[1]->setTooltip ("02 VelXF - MOD: every note crossfades with CC1; velocities are left as written");
+        presetButtons[2]->setTooltip ("03 Velocity: velocity picks the dynamic; no CC1 is written");
         articulationHint.setMinimumHorizontalScale (1.0f);
 
         for (auto* l : { &lowEditor, &highEditor })
@@ -364,34 +262,16 @@ public:
         rangeLabel.setText ("Range", juce::dontSendNotification);
         revertButton.setVisible (app.profiles.isCustomised (t->profile.id));
 
-        // Articulation rows: rebuild only if the set of combinations changed.
+        // Articulation legend.
         const auto& usage = t->result.report.articulations;
-        bool same = (int) usage.size() == rows.size();
-        for (int i = 0; same && i < rows.size(); ++i)
-            same = rows[i]->keys == usage[(size_t) i].keys;
-
-        if (! same)
+        rows.clear();
+        for (size_t i = 0; i < usage.size(); ++i)
         {
-            rows.clear();
-            for (size_t i = 0; i < usage.size(); ++i)
-            {
-                auto* row = rows.add (new ArticulationRow());
-                row->onChange = [this] (const std::vector<int>& keys, const vslp::Articulation& a) {
-                    if (auto* tr = track())
-                    {
-                        auto p = tr->profile;
-                        setArticulation (p, keys, a);
-                        app.updateProfile (*tr, p);
-                    }
-                };
-                addAndMakeVisible (row);
-            }
-        }
-        for (int i = 0; i < rows.size(); ++i)
-        {
-            bool mapped = true;
-            const auto a = articulationFor (t->profile, usage[(size_t) i].keys, mapped);
-            rows[i]->set (usage[(size_t) i], a, mapped, i);
+            if (usage[i].keys.empty() && usage.size() > 1 && usage[i].notes == 0)
+                continue;
+            auto* row = rows.add (new ArticulationRow());
+            row->set (usage[i], (int) i);
+            addAndMakeVisible (row);
         }
 
         report.setText (reportText (*t), false);
@@ -427,6 +307,9 @@ public:
         for (size_t i = 0; i < std::size (sliderSpecs); ++i)
             sliders[(int) i]->setValue (pending.*(sliderSpecs[i].field), juce::dontSendNotification);
         inputVelocityToggle.setToggleState (pending.useInputVelocity, juce::dontSendNotification);
+        const int typeIndex = pending.presetType == vslp::PresetType::VelXFSustain ? 0
+                            : pending.presetType == vslp::PresetType::VelXF ? 1 : 2;
+        presetButtons[typeIndex]->setToggleState (true, juce::dontSendNotification);
     }
 
     void applyPendingSettings()
@@ -509,13 +392,21 @@ private:
             r.removeFromRight (6);
             if (revertButton.isVisible())
                 revertButton.setBounds (r.removeFromRight (70));
-            y += 30;
+            y += 34;
+        }
+        place (presetLabel, 18, 2);
+        {
+            juce::Rectangle<int> r (12, y, w - 24, 28);
+            const int bw = r.getWidth() / 3;
+            for (auto* b : presetButtons)
+                b->setBounds (r.removeFromLeft (bw));
+            y += 34;
         }
 
         place (articulationHeader, 28, 6);
         place (articulationHint, 32, 4);
         for (auto* row : rows)
-            place (*row, 62, 4);
+            place (*row, 20, 2);
 
         y += 6;
         place (performanceHeader, 28, 8);
@@ -557,7 +448,8 @@ private:
     SectionHeader instrumentHeader { "Instrument" }, articulationHeader { "Articulations" },
                   performanceHeader { "Performance" }, reportHeader { "Report" };
     juce::ComboBox profileBox;
-    juce::Label rangeLabel, lowEditor, highEditor, articulationHint;
+    juce::Label rangeLabel, lowEditor, highEditor, articulationHint, presetLabel;
+    juce::OwnedArray<juce::TextButton> presetButtons;
     juce::TextButton revertButton { "Revert" }, folderButton { "Folder" };
     juce::OwnedArray<ArticulationRow> rows;
     juce::OwnedArray<juce::Label> labels;
