@@ -1,0 +1,25 @@
+{
+  "id": "generic",
+  "name": "Generic (no range)",
+  "library": "",
+  "family": "other",
+  "range": [
+    "C-2",
+    "G8"
+  ],
+  "dynamicsCC": 1,
+  "expressionCC": 11,
+  "preservedControllers": [],
+  "default": {
+    "name": "Default",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "unmapped": {
+    "name": "Unmapped",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "keys": [],
+  "articulations": []
+}

@@ -1,0 +1,25 @@
+{
+  "id": "cellos",
+  "name": "Cellos",
+  "library": "",
+  "family": "strings",
+  "range": [
+    "C1",
+    "C5"
+  ],
+  "dynamicsCC": 1,
+  "expressionCC": 11,
+  "preservedControllers": [],
+  "default": {
+    "name": "Default",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "unmapped": {
+    "name": "Unmapped",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "keys": [],
+  "articulations": []
+}

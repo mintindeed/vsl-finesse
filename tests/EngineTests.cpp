@@ -1,0 +1,284 @@
+#include <doctest/doctest.h>
+
+#include "TestHelpers.h"
+
+#include <cmath>
+
+using namespace vslp;
+using namespace vslp::test;
+
+TEST_CASE ("tempo map converts ticks and seconds across tempo changes")
+{
+    TempoMap map (480, { { 0, 500000.0 }, { 1920, 1000000.0 } }); // 120 bpm, then 60 bpm at bar 2
+    CHECK (map.secondsAt (480) == doctest::Approx (0.5));
+    CHECK (map.secondsAt (1920) == doctest::Approx (2.0));
+    CHECK (map.secondsAt (2400) == doctest::Approx (3.0));
+    CHECK (map.tickAt (3.0) == doctest::Approx (2400));
+    CHECK (map.bpmAt (100) == doctest::Approx (120));
+    CHECK (map.bpmAt (2000) == doctest::Approx (60));
+    CHECK (map.ticksForMs (0, 500) == doctest::Approx (480));
+}
+
+TEST_CASE ("note names use Logic's convention")
+{
+    CHECK (noteName (60) == "C3");
+    CHECK (noteName (36) == "C1");
+    CHECK (noteName (49) == "C#2");
+    CHECK (noteName (0) == "C-2");
+    CHECK (parseNoteName ("C3") == 60);
+    CHECK (parseNoteName ("C#2") == 49);
+    CHECK (parseNoteName ("Db2") == 49);
+    CHECK (parseNoteName ("C-2") == 0);
+    CHECK (parseNoteName ("G8") == 127);
+    CHECK_FALSE (parseNoteName ("H2").has_value());
+    CHECK_FALSE (parseNoteName ("C").has_value());
+}
+
+TEST_CASE ("ingest separates keyswitches, wipes CCs and removes overlaps")
+{
+    auto profile = violinProfile();
+    profile.preservedControllers = { 32 };
+
+    auto part = makePart ({ note (0, 480, 67), note (0, 480, 71),   // chord: keep 71
+                            note (480, 720, 72), note (960, 480, 74) }, // overlap: trim to 960
+                          { note (0, 60, 36), note (940, 60, 49) });  // keyswitches C1, C#2
+    part.controllers = { { 0, 1, 64, 1 }, { 0, 11, 100, 1 }, { 0, 32, 3, 1 } };
+
+    Report report;
+    const auto out = ingest (part, profile, Settings {}, report);
+
+    REQUIRE (out.notes.size() == 3);
+    CHECK (out.notes[0].pitch == 71);
+    CHECK (out.notes[1].end == 960);
+    CHECK (out.keyswitches.size() == 2);
+    CHECK (out.keyswitches[0].pitch == 36);
+    CHECK (out.keyswitches[1].pitch == 49);
+    REQUIRE (out.controllers.size() == 1);
+    CHECK (out.controllers[0].controller == 32);
+    CHECK (report.chordNotesRemoved == 1);
+    CHECK (report.overlapsTrimmed == 1);
+    CHECK (report.controllersRemoved == 2);
+}
+
+TEST_CASE ("keyswitches survive the pipeline and stay ahead of their notes")
+{
+    auto profile = violinProfile();
+    Settings s;
+    s.humanizeTimingMs = 12.0;
+
+    std::vector<Note> ks;
+    auto notes = line (16, 240);
+    for (int i = 0; i < 16; i += 4)
+        ks.push_back (note (notes[(size_t) i].start, 60, i % 8 == 0 ? 36 : 49));
+
+    const auto result = finesse (makePart (notes, ks), profile, s);
+    const auto& out = result.part;
+
+    REQUIRE (out.keyswitches.size() == ks.size());
+    for (size_t k = 0; k < ks.size(); ++k)
+    {
+        CHECK (out.keyswitches[k].pitch == ks[k].pitch);
+        // The note it governs is note 4k; the keyswitch must come first.
+        const auto& governed = out.notes[k * 4];
+        // (At tick 0 it can't move earlier; the writer orders keyswitches first.)
+        if (governed.start > 0)
+            CHECK (out.keyswitches[k].start < governed.start);
+        else
+            CHECK (out.keyswitches[k].start == 0);
+        if (k > 0)
+            CHECK (out.keyswitches[k].start > out.notes[k * 4 - 1].start);
+    }
+}
+
+TEST_CASE ("non-legato output is monophonic and repeated notes get a gap")
+{
+    std::vector<Note> notes = { note (0, 480, 67), note (480, 480, 67), note (960, 480, 69), note (1440, 480, 71) };
+    const auto result = finesse (makePart (notes), violinProfile(), Settings {});
+    const auto& out = result.part.notes;
+    REQUIRE (out.size() == 4);
+    for (size_t i = 0; i + 1 < out.size(); ++i)
+        CHECK (out[i].end <= out[i + 1].start);
+    CHECK (out[0].end < out[1].start); // repeated G2
+}
+
+TEST_CASE ("legato articulations overlap consecutive notes, except repeated pitches")
+{
+    auto profile = violinProfile();
+    profile.defaultArticulation = { "Legato", DynamicsMode::VelXFSustain, true, 0.0 };
+    Settings s;
+    s.humanizeTimingMs = 0.0;
+
+    std::vector<Note> notes = { note (0, 480, 67), note (480, 480, 69), note (960, 480, 69), note (1440, 480, 71) };
+    const auto result = finesse (makePart (notes), profile, s);
+    const auto& out = result.part.notes;
+    REQUIRE (out.size() == 4);
+    CHECK (out[0].end > out[1].start);  // G -> A connected
+    CHECK (out[1].end <= out[2].start); // A -> A re-articulated
+    CHECK (out[2].end > out[3].start);  // A -> B connected
+    CHECK (result.report.legatoConnections == 2);
+}
+
+TEST_CASE ("legato isn't bridged across real rests")
+{
+    auto profile = violinProfile();
+    profile.defaultArticulation = { "Legato", DynamicsMode::VelXFSustain, true, 0.0 };
+    std::vector<Note> notes = { note (0, 480, 67), note (960, 480, 69) };
+    const auto result = finesse (makePart (notes), profile, Settings {});
+    CHECK (result.part.notes[0].end < result.part.notes[1].start);
+}
+
+TEST_CASE ("CC1 is written before the first note and follows the note levels")
+{
+    const auto result = finesse (makePart (line (16, 480)), violinProfile(), Settings {});
+    const auto& out = result.part;
+    const auto cc1 = controllersFor (out, 1);
+    REQUIRE_FALSE (cc1.empty());
+    CHECK (cc1.front().tick <= out.notes.front().start);
+
+    for (size_t i = 1; i < cc1.size(); ++i)
+        CHECK (cc1[i - 1].tick <= cc1[i].tick);
+
+    // At each note-on, CC1 is close to the note's velocity (velocity adds only accents/humanize).
+    for (const auto& n : out.notes)
+        CHECK (std::abs (controllerAt (out, 1, n.start) - n.velocity) <= 12);
+
+    CHECK_FALSE (controllersFor (out, 11).empty());
+}
+
+TEST_CASE ("results are deterministic for a seed")
+{
+    Settings a;
+    a.seed = 7;
+    const auto part = makePart (line (24, 240));
+    const auto r1 = finesse (part, violinProfile(), a);
+    const auto r2 = finesse (part, violinProfile(), a);
+    REQUIRE (r1.part.notes.size() == r2.part.notes.size());
+    for (size_t i = 0; i < r1.part.notes.size(); ++i)
+    {
+        CHECK (r1.part.notes[i].start == r2.part.notes[i].start);
+        CHECK (r1.part.notes[i].velocity == r2.part.notes[i].velocity);
+    }
+    CHECK (r1.part.controllers.size() == r2.part.controllers.size());
+
+    Settings b = a;
+    b.seed = 8;
+    const auto r3 = finesse (part, violinProfile(), b);
+    bool anyDifferent = false;
+    for (size_t i = 0; i < r1.part.notes.size(); ++i)
+        anyDifferent |= r1.part.notes[i].start != r3.part.notes[i].start || r1.part.notes[i].velocity != r3.part.notes[i].velocity;
+    CHECK (anyDifferent);
+}
+
+TEST_CASE ("rests split phrases, and a phrase arches up and back down")
+{
+    Settings s;
+    s.humanizeVelocity = 0.0;
+    s.humanizeTimingMs = 0.0;
+    s.highLoudAmount = 0.0;
+    s.durationContrastAmount = 0.0;
+
+    // Two 4-second phrases of quarter notes on one pitch, a bar of rest between.
+    std::vector<Note> notes;
+    for (int i = 0; i < 8; ++i)
+        notes.push_back (note (i * 480, 480, 72, 80));
+    for (int i = 0; i < 8; ++i)
+        notes.push_back (note (5760 + i * 480, 480, 72, 80));
+
+    const auto result = finesse (makePart (notes), violinProfile(), s);
+    REQUIRE (result.phrases.size() == 2);
+
+    const auto& out = result.part;
+    const int start = controllerAt (out, 1, out.notes[0].start);
+    const int middle = controllerAt (out, 1, out.notes[5].start);
+    const int end = controllerAt (out, 1, out.notes[7].start);
+    CHECK (middle > start);
+    CHECK (middle > end);
+}
+
+TEST_CASE ("long wind phrases are split for breaths")
+{
+    InstrumentProfile flute;
+    flute.family = Family::Woodwinds;
+    flute.lowestNote = 60;
+    flute.highestNote = 96;
+    flute.maxBreathSeconds = 8.0;
+
+    // 20 seconds of continuous eighth notes.
+    const auto result = finesse (makePart (line (80, 240, 72)), flute, Settings {});
+    CHECK (result.phrases.size() >= 3);
+    for (const auto& p : result.phrases)
+        CHECK (p.endSeconds - p.startSeconds <= 8.5);
+
+    // A breath leaves a gap after the phrase-final note.
+    const auto& firstEnd = result.part.notes[result.phrases[0].lastNote];
+    const auto& nextStart = result.part.notes[result.phrases[1].firstNote];
+    // ~100 ms at 120 bpm: the breath is capped so a short note keeps 60% of its length.
+    CHECK (nextStart.start - firstEnd.end >= 90);
+}
+
+TEST_CASE ("multi-level keyswitches resolve to the combination")
+{
+    auto profile = violinProfile();
+    profile.keys = { { 36, 0 }, { 37, 0 }, { 49, 1 }, { 50, 1 } };
+    profile.articulations = {
+        { { 36, 49 }, { "Long legato", DynamicsMode::VelXFSustain, true, 0.0 } },
+        { { 37, 49 }, { "Staccato", DynamicsMode::Velocity, false, 0.0 } },
+        { { 36 }, { "Long", DynamicsMode::VelXF, false, 0.0 } },
+    };
+
+    auto notes = line (12, 480);
+    std::vector<Note> ks = {
+        note (0, 30, 36), note (0, 30, 49),          // C1 + C#2 -> Long legato
+        note (1920, 30, 37),                         // C#1 (+ C#2 still held) -> Staccato
+        note (3840, 30, 36), note (3840, 30, 50),    // C1 + D2 -> only C1 is mapped -> Long
+    };
+
+    const auto result = finesse (makePart (notes, ks), profile, Settings {});
+    auto nameOf = [&result] (size_t i) { return result.articulations[(size_t) result.articulationIndex[i]].name; };
+    CHECK (nameOf (0) == "Long legato");
+    CHECK (nameOf (3) == "Long legato");
+    CHECK (nameOf (4) == "Staccato");
+    CHECK (nameOf (8) == "Long");
+    CHECK (result.report.warnings.empty());
+}
+
+TEST_CASE ("unmapped keyswitches are reported")
+{
+    auto notes = line (4, 480);
+    const auto result = finesse (makePart (notes, { note (0, 30, 40) }), violinProfile(), Settings {});
+    REQUIRE (result.report.articulations.size() == 1);
+    CHECK_FALSE (result.report.articulations[0].mapped);
+    CHECK_FALSE (result.report.warnings.empty());
+}
+
+TEST_CASE ("Velocity articulations don't get CC1 swells, crossfading ones do")
+{
+    Settings s;
+    s.humanizeVelocity = 0.0;
+    s.humanizeTimingMs = 0.0;
+    s.intensity = 1.0;
+
+    // A long note in the middle of a phrase.
+    std::vector<Note> notes = { note (0, 480, 67), note (480, 3840, 69), note (4320, 480, 71), note (4800, 480, 72) };
+
+    auto range = [] (const Part& p, Tick from, Tick to) {
+        int lo = 127, hi = 0;
+        for (const auto& c : p.controllers)
+            if (c.controller == 1 && c.tick >= from && c.tick <= to)
+            {
+                lo = std::min (lo, c.value);
+                hi = std::max (hi, c.value);
+            }
+        return hi - lo;
+    };
+
+    auto velxf = violinProfile();
+    velxf.defaultArticulation.mode = DynamicsMode::VelXF;
+    auto vel = violinProfile();
+    vel.defaultArticulation.mode = DynamicsMode::Velocity;
+
+    const auto a = finesse (makePart (notes), velxf, s);
+    const auto b = finesse (makePart (notes), vel, s);
+    // Look inside the long note, away from the transitions.
+    CHECK (range (a.part, 1200, 3000) > range (b.part, 1200, 3000));
+}

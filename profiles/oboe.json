@@ -1,0 +1,26 @@
+{
+  "id": "oboe",
+  "name": "Oboe",
+  "library": "",
+  "family": "woodwinds",
+  "range": [
+    "A#2",
+    "G5"
+  ],
+  "dynamicsCC": 1,
+  "expressionCC": 11,
+  "maxBreathSeconds": 8,
+  "preservedControllers": [],
+  "default": {
+    "name": "Default",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "unmapped": {
+    "name": "Unmapped",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "keys": [],
+  "articulations": []
+}

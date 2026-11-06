@@ -1,0 +1,26 @@
+{
+  "id": "english-horn",
+  "name": "English Horn",
+  "library": "",
+  "family": "woodwinds",
+  "range": [
+    "E2",
+    "C5"
+  ],
+  "dynamicsCC": 1,
+  "expressionCC": 11,
+  "maxBreathSeconds": 8,
+  "preservedControllers": [],
+  "default": {
+    "name": "Default",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "unmapped": {
+    "name": "Unmapped",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "keys": [],
+  "articulations": []
+}

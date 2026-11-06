@@ -1,0 +1,26 @@
+{
+  "id": "trombone",
+  "name": "Trombone",
+  "library": "",
+  "family": "brass",
+  "range": [
+    "E1",
+    "C4"
+  ],
+  "dynamicsCC": 1,
+  "expressionCC": 11,
+  "maxBreathSeconds": 7,
+  "preservedControllers": [],
+  "default": {
+    "name": "Default",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "unmapped": {
+    "name": "Unmapped",
+    "mode": "velxf-sus",
+    "legato": false
+  },
+  "keys": [],
+  "articulations": []
+}
