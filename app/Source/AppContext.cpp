@@ -3,6 +3,8 @@
 #include <JsonIO.h>
 #include <MidiIO.h>
 
+#include <algorithm>
+
 // ---------------------------------------------------------------------------
 class AppContext::PluginWindow : public juce::DocumentWindow
 {
@@ -197,12 +199,52 @@ vslp::Settings AppContext::defaultSettings()
 
 // --- Plugins ------------------------------------------------------------------
 
+bool AppContext::isViennaInstrument (const juce::PluginDescription& d)
+{
+    const auto text = (d.name + " " + d.manufacturerName).toLowerCase();
+    return text.contains ("synchron") || text.contains ("vienna") || text.contains ("vsl");
+}
+
 juce::Array<juce::PluginDescription> AppContext::instrumentPlugins() const
 {
     juce::Array<juce::PluginDescription> result;
+
+   #if JUCE_MAC
+    // Ask macOS for the installed Audio Unit instruments. Nothing is loaded:
+    // loading every plug-in to inspect it (a full scan) lets any one badly
+    // behaved plug-in crash the app. Only the instrument you pick gets loaded.
+    for (auto* format : formatManager.getFormats())
+    {
+        if (format->getName() != "AudioUnit")
+            continue;
+
+        for (const auto& id : format->searchPathsForPlugins ({}, true, true))
+        {
+            if (! id.contains ("/aumu,")) // instruments ("music devices") only
+                continue;
+
+            juce::PluginDescription d;
+            d.pluginFormatName = format->getName();
+            d.fileOrIdentifier = id;
+            d.name = d.descriptiveName = format->getNameOfPluginFromIdentifier (id);
+            d.manufacturerName = id.fromLastOccurrenceOf (",", false, false);
+            d.category = "Synth";
+            d.isInstrument = true;
+            result.add (d);
+        }
+    }
+   #else
     for (const auto& d : knownPlugins.getTypes())
         if (d.isInstrument)
             result.add (d);
+   #endif
+
+    std::sort (result.begin(), result.end(), [] (const juce::PluginDescription& a, const juce::PluginDescription& b) {
+        const bool va = isViennaInstrument (a), vb = isViennaInstrument (b);
+        if (va != vb)
+            return va;
+        return a.name.compareNatural (b.name) < 0;
+    });
     return result;
 }
 
@@ -244,8 +286,10 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
 
             engine.prepare (*instance);
             closePluginWindow (track);
+            track->pluginDescription = instance->getPluginDescription();
+            if (track->pluginDescription.fileOrIdentifier.isEmpty())
+                track->pluginDescription = desc;
             destroyPlugin (session.swapPlugin (*track, std::move (instance)));
-            track->pluginDescription = desc;
             track->hasPlugin = true;
 
             if (callback)

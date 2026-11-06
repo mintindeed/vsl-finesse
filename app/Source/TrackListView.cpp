@@ -141,17 +141,36 @@ private:
         const auto types = app.instrumentPlugins();
 
         juce::PopupMenu menu;
-        if (types.isEmpty())
-            menu.addItem ("No instruments found yet - scan first", false, false, nullptr);
-        else
+        juce::PopupMenu others;
+        bool anyVienna = false;
+        for (int i = 0; i < types.size(); ++i)
         {
-            juce::PopupMenu list;
-            juce::KnownPluginList::addToMenu (list, types, juce::KnownPluginList::sortByManufacturer,
-                                              t->hasPlugin ? t->pluginDescription.createIdentifierString() : juce::String());
-            menu.addSubMenu ("Instrument", list);
+            const auto& d = types.getReference (i);
+            const bool ticked = t->hasPlugin && d.fileOrIdentifier == t->pluginDescription.fileOrIdentifier;
+            if (AppContext::isViennaInstrument (d))
+            {
+                if (! anyVienna)
+                    menu.addSectionHeader ("Vienna Symphonic Library");
+                anyVienna = true;
+                menu.addItem (i + 1, d.name, true, ticked);
+            }
+            else
+                others.addItem (i + 1, d.name, true, ticked);
         }
+
+        if (types.isEmpty())
+           #if JUCE_MAC
+            menu.addItem ("No Audio Unit instruments found", false, false, nullptr);
+           #else
+            menu.addItem ("No instruments found yet - scan first", false, false, nullptr);
+           #endif
+        else if (others.getNumItems() > 0)
+            menu.addSubMenu (anyVienna ? "Other instruments" : "Instruments", others);
+
         menu.addSeparator();
+       #if ! JUCE_MAC
         menu.addItem (-1, "Scan for plug-ins...");
+       #endif
         menu.addItem (-2, "Remove instrument", t->audio.plugin != nullptr);
 
         juce::Component::SafePointer<Row> safe (this);
@@ -181,7 +200,7 @@ private:
             return;
         }
 
-        const int chosen = juce::KnownPluginList::getIndexChosenByMenu (types, result);
+        const int chosen = result - 1;
         if (! juce::isPositiveAndBelow (chosen, types.size()))
             return;
 

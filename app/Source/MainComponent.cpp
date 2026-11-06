@@ -364,7 +364,9 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
     else if (index == 1)
     {
         m.addItem (menuAudioSettings, "Audio Settings...");
+       #if ! JUCE_MAC
         m.addItem (menuScanPlugins, "Scan for Plug-ins...");
+       #endif
     }
     return m;
 }
