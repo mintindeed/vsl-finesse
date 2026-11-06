@@ -49,7 +49,9 @@ AppContext::AppContext()
     auto audioState = properties.getUserSettings()->getXmlValue ("audioDevice");
     const auto error = deviceManager.initialise (0, 2, audioState.get(), true);
     if (error.isNotEmpty())
+    {
         DBG ("Audio device: " << error);
+    }
     deviceManager.addAudioCallback (&engine);
 
     if (auto* t = session.selectedTrack())
@@ -166,7 +168,9 @@ void AppContext::updateProfile (Track& t, const vslp::InstrumentProfile& p)
     t.profile = p;
     juce::String error;
     if (! profiles.save (p, error))
+    {
         DBG ("Couldn't save profile: " << error);
+    }
     session.process (t);
 }
 
