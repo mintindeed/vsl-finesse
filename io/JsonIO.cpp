@@ -283,7 +283,7 @@ bool saveProfile (const InstrumentProfile& p, const juce::File& file, std::strin
     X (humanizeVelocity) X (humanizeTimingMs) \
     X (velocityMin) X (velocityMax) X (dynamicsMin) X (dynamicsMax) X (expressionBase) X (expressionMin) \
     X (legatoOverlapMs) X (legatoMaxGapMs) X (repeatedNoteGapMs) X (minNoteMs) \
-    X (ccIntervalMs) X (ccLeadMs) X (breathMs) X (shortNoteMs)
+    X (ccIntervalMs) X (ccLeadMs) X (breathMs) X (shortNoteMs) X (keepControllers)
 
 juce::var settingsToJson (const Settings& s)
 {

@@ -234,6 +234,19 @@ void writeControllers (Context& ctx)
         collapsed.push_back (e);
     }
 
+    // Controllers written here replace what the file had for them.
+    std::vector<int> written;
+    for (const auto& e : collapsed)
+        if (std::find (written.begin(), written.end(), e.controller) == written.end())
+            written.push_back (e.controller);
+    const auto before = part.controllers.size();
+    part.controllers.erase (std::remove_if (part.controllers.begin(), part.controllers.end(),
+                                            [&] (const ControllerEvent& c) {
+                                                return std::find (written.begin(), written.end(), c.controller) != written.end();
+                                            }),
+                            part.controllers.end());
+    ctx.report.controllersRemoved += (int) (before - part.controllers.size());
+
     part.controllers.insert (part.controllers.end(), collapsed.begin(), collapsed.end());
     std::stable_sort (part.controllers.begin(), part.controllers.end(),
                       [] (const ControllerEvent& a, const ControllerEvent& b) { return a.tick < b.tick; });

@@ -6,6 +6,7 @@
 #include "ProfileLibrary.h"
 #include "Session.h"
 
+#include <deque>
 #include <functional>
 #include <map>
 
@@ -30,6 +31,19 @@ public:
     bool loadMidi (Track&, const juce::File&, juce::String& error);
     bool exportFinessed (Track&, const juce::File&, juce::String& error);
     static bool isMidiFile (const juce::File&);
+
+    // What happens to controller data (CCs) already in a MIDI file when it's
+    // opened: always remove it, never remove it, or ask. The app's own CC1
+    // and CC11 replace the file's either way, where it writes them.
+    enum class FileControllers
+    {
+        Always, // remove
+        Never,  // keep
+        Ask
+    };
+    FileControllers fileControllers();
+    // Always and Never apply to the tracks already open, too.
+    void setFileControllers (FileControllers);
 
     // --- Instrument profiles and settings ----------------------------------
     void setProfile (Track&, const std::string& id);
@@ -87,6 +101,12 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+
+    // Applies the FileControllers setting to a track whose MIDI file is new.
+    void decideControllers (Track&);
+    void askNextControllerQuestion();
+    std::deque<Track*> controllerQuestions;
+    bool askingControllers = false;
     void timerCallback() override;
     void closePluginWindow (Track*);
     void destroyPlugin (std::unique_ptr<juce::AudioPluginInstance>);

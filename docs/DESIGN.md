@@ -5,7 +5,7 @@
 - **Offline, not a MIDI FX plug-in.** A plug-in in Logic's MIDI FX slot only sees each note as it plays: no note lengths, no next note, no phrase shape. An offline tool sees the whole part, and its output is ordinary, editable CC data in Logic.
 - **One instrument per MIDI file.** Notes sounding at once are treated as mistakes: chords keep their top note (configurable), and overlaps are trimmed. Small, deliberate overlaps between connected notes are added back afterwards.
 - **Keyswitches are only written for picked articulations.** Notes outside the instrument's range (or listed in the profile's `keys`) are keyswitches. They're preserved; the only change is moving one a few milliseconds earlier when timing humanization would otherwise put its note first. The exception is a passage where the user picked an articulation (see below).
-- **Existing CCs are wiped**, except controllers listed in the profile's `preservedControllers`.
+- **The file's CCs: Always / Never / Ask.** A setting (Settings, ⌘,) decides whether the controller data in a newly opened file is removed (Always), kept (Never), or the user is asked when the file has any (Ask, the default). The answer is per track (`Settings::keepControllers`), saved in sessions; sessions from before the setting load with removal, as they behaved. Kept or not, a controller the engine writes (CC1 in crossfading presets, CC11) replaces the file's: one controller can't follow two lines. So in Velocity presets a kept CC1 survives, which matters because it drives Marcato's attack there. The profile's `preservedControllers` are always kept.
 - **The Synchron preset folder decides the strategy.** It's one choice per track:
 
   | Preset folder | CC1 | Velocity | Long-note swells |
@@ -81,7 +81,7 @@ Pick an articulation such as "Long notes > Marcato" by name over a selected pass
 
 So each articulation gets `Articulation::layers` (Velocity or Crossfade; a crossfade between patches, like Marcato, crossfades if any of them does), and the engine uses it instead of the note-length rule unless the track's preset type is Velocity (the user's choice wins). Notes before the first keyswitch get the start articulation's layers. Presets outside the three folders (Harp, "VelXF rolls - MOD") get their preset type from `velXFadeEnabled`: Velocity if 0, else VelXF sus.
 
-Open question: in the Velocity presets, Marcato's attack mix (`nodeXFade0`) follows CC1, and the app writes no CC1 there, so the attack is wherever CC1 happens to be.
+In the Velocity presets, Marcato's attack (`nodeXFade0`) follows CC1, and the app writes no CC1 there, so today the attack sits wherever CC1 happens to be. See "Crossfaded articulations" under Next up.
 
 **What the engine does with picks** (`engine/src/Articulations.cpp`, `ArticulationPicks`): for every note it works out the key it wants on each level. Inside a pick, the pick's keys; elsewhere, what the file's own keyswitches have selected by then, or the player's start articulation on levels the file never switched (only the levels picks touch are considered). A key is written at a note wherever what the player has received so far differs. The file's keyswitches governing picked notes are dropped and the rest kept as written. The timing fix-up then moves every keyswitch ahead of its (humanized) note as before. Consequences:
 - Staccato after Marcato only writes C0: the Type level (C#1) stays, and Synchron ignores it under Staccato.
@@ -93,6 +93,19 @@ Open question: in the Velocity presets, Marcato's attack mix (`nodeXFade0`) foll
 The picker follows the dynamics buttons' model: drag across bars to select, then pick from the **Articulation** menu (nested like the tree); with no selection it applies to the whole part. A new pick replaces the part of an older one it covers. Without a Synchron tree (another instrument, or no preset yet), the menu offers the profile's named articulations and the key combinations in the file. The picked names also name those key combinations in the Articulations legend.
 
 ## Next up
+
+### Crossfaded articulations (proposal)
+
+**Terms.** VSL calls the articulation tree the **Dimension Tree**; each column is a **dimension**. A dimension is switched by keyswitches, or by one of the eight **Dimension Controls** (Dim.Ctrl/A-H, assignable to a CC, velocity, speed...). In parallel mode a dimension plays its slots together: each slot is **Mix** (always plays) or **XFade** (faded in by the Dimension Control). Here: **crossfaded articulations**. In the state: `parallel: true`, the slot's `parameters.nodeXFadeMode` (1 = Mix, 0 = XFade), `switchControl` 257 + slot (`nodeXFade0` = Dim.Ctrl/A...), and the control's source in `paramControl.mappings.nodeXFadeN`.
+
+**Principle.** The app automates what a player varies without being told (how hard, how long, how much bite, when to breathe) and never what the composer decides (which technique). Every crossfaded articulation seen is only active when its articulation was chosen (by a keyswitch in the file or the picker): Marcato, XF tremolo. Choosing it is the composer's decision; how much of the blend each note gets is the player's, so the app shapes it. There's no list of articulations: the shape comes from the tree's structure.
+
+1. **An added layer** (one slot Mix, the others XFade): the control adds something on top of a sound that always plays. Marcato, Trem. marcato, Harm. marcato (Sustain mixed, Staccato attack faded in). This is an accent: **one value per note**, set before its note-on and held, centred on the preset's own value (Dim.Ctrl/A is 60 in the Special Editions). More bite on downbeats, phrase starts, after rests, upward leaps, louder dynamics and notes the file plays louder than their neighbours (notated accents in a notation export); less in fast or repeated notes and inside a diminuendo; a little human variation. Character sets the range.
+2. **A true crossfade** (all slots XFade): one sound turns into another. XF tremolo and Sfz/Fp XF tremolo (CC20); VSL's manual shows a Vibrato XF too. This is colour: **a smooth line** that follows the phrase's intensity, moving towards the second slot as the phrase builds to its peak and back as it relaxes, starting from the preset's value (Dim.Ctrl/B is 0: tremolo creeps in towards climaxes). Character sets the depth.
+
+**Writing it** through whatever the preset maps the control to: a CC line (written ahead of the note like CC1, `ccLeadMs`), or the note's velocity (VelXF presets map Dim.Ctrl/A to velocity). Never where it would fight something else: not velocity when velocity is that note's dynamic, not a CC the engine writes for dynamics, and not a CC the user kept from the file (their line wins). Behaviour change: in the VelXF presets, Marcato velocities would no longer be kept exactly as written; they become the attack amount, with the file's own accents folded in.
+
+**Data the engine needs** (from `io/SynchronState.cpp`): per articulation, its crossfade dimension (if any), the kind (layer or crossfade, from the Mix/XFade flags), its source (velocity or CC number) and the preset's value for that control at preset load (like the start articulation).
 
 ### Smarter breaths
 

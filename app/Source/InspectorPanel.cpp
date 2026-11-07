@@ -410,8 +410,10 @@ private:
             s << r.keyswitchesWritten << " keyswitches written for picked articulations"
               << (r.keyswitchesReplaced > 0 ? ", " + juce::String (r.keyswitchesReplaced) + " replaced" : juce::String()) << "\n";
         s << (int) t.result.part.controllers.size() << " controller events written";
+        if (r.controllersKept > 0)
+            s << ", " << r.controllersKept << " of the file's kept";
         if (r.controllersRemoved > 0)
-            s << ", " << r.controllersRemoved << " old ones removed";
+            s << ", " << r.controllersRemoved << " of the file's removed";
         s << "\n";
         if (r.legatoConnections > 0)
             s << r.legatoConnections << " connected notes\n";

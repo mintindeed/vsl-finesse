@@ -229,6 +229,7 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
         r.articulationIndex.push_back (i.articulation);
     r.report = std::move (ctx.report);
     r.report.notesOut = (int) r.part.notes.size();
+    r.report.controllersKept = std::max (0, (int) input.controllers.size() - r.report.controllersRemoved);
     return r;
 }
 

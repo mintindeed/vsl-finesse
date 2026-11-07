@@ -612,3 +612,39 @@ TEST_CASE ("an articulation's own layers beat the note-length rule")
         shortsShaped |= v.part.notes[i].velocity != 80;
     CHECK (shortsShaped);
 }
+
+TEST_CASE ("kept controllers stay, except the ones the engine writes itself")
+{
+    auto part = makePart (line (8, 480));
+    part.controllers = { { 0, 1, 90, 1 }, { 0, 11, 100, 1 }, { 0, 20, 64, 1 }, { 960, 20, 0, 1 }, { 0, 64, 127, 1 } };
+    auto count = [] (const Part& p, int cc) { return (int) controllersFor (p, cc).size(); };
+
+    Settings s;
+    s.presetType = PresetType::VelXFSustain;
+
+    // Removed (the default): only the engine's own controllers are left.
+    auto r = finesse (part, violinProfile(), s);
+    CHECK (count (r.part, 20) == 0);
+    CHECK (count (r.part, 64) == 0);
+    CHECK (r.report.controllersRemoved == 5);
+    CHECK (r.report.controllersKept == 0);
+
+    // Kept: CC20 and CC64 stay exactly as written; CC1 and CC11 are the engine's lines.
+    s.keepControllers = true;
+    r = finesse (part, violinProfile(), s);
+    CHECK (count (r.part, 20) == 2);
+    CHECK (count (r.part, 64) == 1);
+    CHECK (controllerAt (r.part, 20, 500) == 64);
+    CHECK (controllerAt (r.part, 20, 1000) == 0);
+    for (const auto& c : controllersFor (r.part, 1))
+        CHECK_FALSE ((c.tick == 0 && c.value == 90)); // the file's CC1 is gone
+    CHECK (r.report.controllersRemoved == 2);
+    CHECK (r.report.controllersKept == 3);
+
+    // Velocity presets: the engine writes no CC1, so the file's CC1 stays
+    // (it can drive a crossfade there, e.g. Marcato's attack).
+    s.presetType = PresetType::Velocity;
+    r = finesse (part, violinProfile(), s);
+    REQUIRE (count (r.part, 1) == 1);
+    CHECK (controllerAt (r.part, 1, 0) == 90);
+}

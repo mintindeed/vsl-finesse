@@ -29,7 +29,7 @@ You can change your answers in System Settings → Privacy & Security.
 
 ## Using it
 
-1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.
+1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file. If the file has controller data (CC20, CC64...), the app asks whether to keep it. **Settings** (⌘,) lets you choose to always or never remove it instead. Either way, the app's own dynamics (CC1) and expression (CC11) replace the file's where it writes them.
 2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins), and again from the preset you load in Synchron Player (step 3). The profile's range decides which notes are keyswitches: anything outside the playable range.
 3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window in the **Precision** view, where you load your Special Edition preset. Use the Precision presets: the Flow presets assign their controllers differently, so the dynamics the app writes may not land where it expects. Once you load a preset, the instrument profile and the Synchron preset folder (step 4) follow it, e.g. "02 VelXF - MOD/01 Violin I - VelXF" sets Violins and VelXF - MOD. You can still change either by hand; they only follow Synchron again when you load a different preset. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
 4. **Check the Synchron preset folder** your preset came from (right panel; it's set for you when you load a Special Edition preset in Synchron): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. Presets outside these folders (e.g. Harp, or the timpani's VelXF rolls) get the closest one: Velocity if the preset lets velocity pick its dynamic layers, otherwise VelXF sus. That one choice decides how dynamics are written:
@@ -86,7 +86,7 @@ The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pau
 
 | Step | What happens |
 |---|---|
-| Clean up | Keyswitches are set aside untouched, except in passages where you picked an articulation: there the app writes the picked articulation's keyswitches and switches back afterwards. Existing CCs are removed. Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
+| Clean up | Keyswitches are set aside untouched, except in passages where you picked an articulation: there the app writes the picked articulation's keyswitches and switches back afterwards. The file's CCs are removed or kept, as you chose (see step 1). Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
 | Phrases | Rests, long notes and (for winds/brass) breath length split the line into phrases. Each phrase gets a peak, chosen from its high and long notes. |
 | Dynamics | Your markings (pp-ff, cresc., dim.) or the file's velocities set the base level. Phrase arch, high loud and duration contrast shape it into one smooth CC1 line through the whole part. |
 | Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus beat stress and a little variation. Otherwise left as written. |

@@ -42,6 +42,12 @@ struct Settings
     // follow velocity in VelXF sus presets.
     double shortNoteMs = 300.0;
 
+    // Keep the controller data (CCs) already in the file. Where the engine
+    // writes a controller itself (CC1 dynamics in crossfading presets, CC11
+    // expression), its line replaces the file's: one controller can't follow
+    // two lines. Otherwise only the profile's preservedControllers survive.
+    bool keepControllers = false;
+
     // Human pauses: breaths for winds and brass, a moment for the bow to
     // cross strings, and a tiny lift where a phrase ends without a rest.
     bool humanPauses = true;

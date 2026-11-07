@@ -113,7 +113,8 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
         return false;
     }
 
-    if (t.midiFile != file)
+    const bool newFile = t.midiFile != file;
+    if (newFile)
     {
         t.markings.clear();
         t.articulationMarkings.clear();
@@ -130,9 +131,108 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
                                                    profiles.all()))
             t.profile = *best;
 
+    if (newFile)
+        decideControllers (t);
+
     engine.stop();
     session.process (t);
     return true;
+}
+
+// --- Controllers already in MIDI files ----------------------------------------
+
+AppContext::FileControllers AppContext::fileControllers()
+{
+    const auto v = properties.getUserSettings()->getValue ("fileControllers", "ask");
+    return v == "always" ? FileControllers::Always : v == "never" ? FileControllers::Never : FileControllers::Ask;
+}
+
+void AppContext::setFileControllers (FileControllers f)
+{
+    properties.getUserSettings()->setValue ("fileControllers", f == FileControllers::Always  ? "always"
+                                                             : f == FileControllers::Never ? "never" : "ask");
+    properties.saveIfNeeded();
+    if (f == FileControllers::Ask)
+        return;
+    for (const auto& t : session.tracks())
+        if (t->hasMidi && t->settings.keepControllers != (f == FileControllers::Never))
+        {
+            t->settings.keepControllers = f == FileControllers::Never;
+            session.process (*t);
+        }
+}
+
+void AppContext::decideControllers (Track& t)
+{
+    switch (fileControllers())
+    {
+        case FileControllers::Always: t.settings.keepControllers = false; return;
+        case FileControllers::Never:  t.settings.keepControllers = true;  return;
+        case FileControllers::Ask:    break;
+    }
+    // Removed until the answer comes; nothing to ask about without controllers.
+    t.settings.keepControllers = false;
+    if (! t.input.controllers.empty())
+    {
+        controllerQuestions.push_back (&t);
+        askNextControllerQuestion();
+    }
+}
+
+namespace
+{
+juce::String controllerSummary (const std::vector<vslf::ControllerEvent>& controllers)
+{
+    std::map<int, int> count;
+    for (const auto& c : controllers)
+        ++count[c.controller];
+    juce::StringArray parts;
+    for (const auto& [cc, n] : count)
+    {
+        juce::String name = "CC" + juce::String (cc);
+        const auto known = juce::String (juce::MidiMessage::getControllerName (cc));
+        if (known.isNotEmpty())
+            name << " (" << known << ")";
+        parts.add (name);
+    }
+    return parts.joinIntoString (", ");
+}
+} // namespace
+
+void AppContext::askNextControllerQuestion()
+{
+    if (askingControllers)
+        return;
+    while (! controllerQuestions.empty() && session.indexOf (controllerQuestions.front()) < 0)
+        controllerQuestions.pop_front(); // the track was removed meanwhile
+    if (controllerQuestions.empty())
+        return;
+
+    auto* t = controllerQuestions.front();
+    controllerQuestions.pop_front();
+    askingControllers = true;
+
+    const auto file = t->midiFile;
+    auto options = juce::MessageBoxOptions()
+                       .withIconType (juce::MessageBoxIconType::QuestionIcon)
+                       .withTitle ("Keep the controllers in " + file.getFileName() + "?")
+                       .withMessage ("This MIDI file has controller data: " + controllerSummary (t->input.controllers) + ".\n\n"
+                                     "Keep: they stay in the finessed part, except where VSL Finesse writes its own "
+                                     "dynamics (CC1) and expression (CC11).\n"
+                                     "Remove: only VSL Finesse's own controllers are written.\n\n"
+                                     "You can choose to always or never remove them in Settings.")
+                       .withButton ("Keep")
+                       .withButton ("Remove");
+    juce::AlertWindow::showAsync (options, [this, t, file] (int result) {
+        askingControllers = false;
+        // Still the same track and file? (result 1 = Keep)
+        if (session.indexOf (t) >= 0 && t->midiFile == file && result == 1 && ! t->settings.keepControllers)
+        {
+            t->settings.keepControllers = true;
+            session.process (*t);
+        }
+        askNextControllerQuestion();
+    });
 }
 
 bool AppContext::exportFinessed (Track& t, const juce::File& file, juce::String& error)
@@ -770,6 +870,7 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
         t.profile = p != nullptr ? *p : profiles.fallback();
 
         t.settings = defaultSettings();
+        t.settings.keepControllers = false; // sessions saved before the setting existed removed them
         if (auto* sx = x->getChildByName ("Settings"))
             vslf::io::settingsFromJson (juce::JSON::parse (sx->getAllSubText()), t.settings);
         if (auto* mx = x->getChildByName ("Markings"))

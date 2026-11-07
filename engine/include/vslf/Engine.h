@@ -94,7 +94,8 @@ struct Report
     int notesOut = 0;
     int chordNotesRemoved = 0;
     int overlapsTrimmed = 0;
-    int controllersRemoved = 0;
+    int controllersRemoved = 0;  // the file's controller events not in the output
+    int controllersKept = 0;     // the file's controller events kept
     int legatoConnections = 0;
     int breaths = 0;     // wind/brass breaths added
     int pauses = 0;      // other human pauses (phrase ends, string crossings)
