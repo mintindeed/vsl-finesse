@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 - Opening a MIDI file on a track with no instrument now loads Synchron Player automatically, if it's installed. Click **Edit** to open it and load your preset. You can still pick another instrument from the track's instrument button.
+- Synchron Player now opens in its **Precision** view instead of Flow when the app loads it. The app's preset folder choices (VelXF sus - MOD, VelXF - MOD, Velocity) are Precision presets. A Flow preset you've loaded yourself is left alone, and so is a track restored from a session.
 - The **Plain** character button is now called **Simple**.
 
 ## [0.4.0] - 2026-11-07

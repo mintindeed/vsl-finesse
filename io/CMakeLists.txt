@@ -12,6 +12,7 @@ add_library (vslf_io INTERFACE)
 target_sources (vslf_io INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/BuiltinProfiles.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/JsonIO.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/MidiIO.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/MidiIO.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/SynchronState.cpp")
 target_include_directories (vslf_io INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries (vslf_io INTERFACE vslf_engine vslf_profiles)
+target_link_libraries (vslf_io INTERFACE vslf_engine vslf_profiles vslf_zstd)

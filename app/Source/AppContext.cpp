@@ -2,6 +2,7 @@
 
 #include <JsonIO.h>
 #include <MidiIO.h>
+#include <SynchronState.h>
 
 #include <algorithm>
 
@@ -252,6 +253,11 @@ bool AppContext::isViennaInstrument (const juce::PluginDescription& d)
     return text.contains ("synchron") || text.contains ("vienna") || text.contains ("vsl");
 }
 
+bool AppContext::isSynchronPlayer (const juce::PluginDescription& d)
+{
+    return d.name.containsIgnoreCase ("synchron player");
+}
+
 juce::Array<juce::PluginDescription> AppContext::instrumentPlugins() const
 {
     juce::Array<juce::PluginDescription> result;
@@ -330,6 +336,15 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
 
             if (state.getSize() > 0)
                 instance->setStateInformation (state.getData(), (int) state.getSize());
+            else if (isSynchronPlayer (desc))
+            {
+                // Synchron Player starts in its Flow view. The app is tuned for
+                // the Precision presets, so open it there instead.
+                juce::MemoryBlock fresh;
+                instance->getStateInformation (fresh);
+                if (const auto precision = vslf::io::withPrecisionView (fresh))
+                    instance->setStateInformation (precision->getData(), (int) precision->getSize());
+            }
 
             engine.prepare (*instance);
             closePluginWindow (track);
@@ -351,7 +366,7 @@ void AppContext::loadDefaultInstrument (Track& t)
 
     for (const auto& d : instrumentPlugins())
     {
-        if (d.name.containsIgnoreCase ("synchron player"))
+        if (isSynchronPlayer (d))
         {
             loadPlugin (t, d, [] (juce::String error) {
                 if (error.isNotEmpty())

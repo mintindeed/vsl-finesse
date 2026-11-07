@@ -20,7 +20,7 @@ brew install cmake         # once
 
 1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.
 2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins). The profile's range decides which notes are keyswitches: anything outside the playable range.
-3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window, where you load your Special Edition preset. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
+3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window in the **Precision** view, where you load your Special Edition preset. Use the Precision presets: the Flow presets assign their controllers differently, so the dynamics the app writes may not land where it expects. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
 4. **Pick the Synchron preset folder** your preset came from (right panel): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. That one choice decides how dynamics are written:
    - **VelXF sus - MOD:** long notes crossfade with CC1, short notes follow velocity
    - **VelXF - MOD:** every note crossfades with CC1. Velocities are left exactly as written, because in these presets velocity can pick an attack (e.g. Marcato's sustain/staccato attack)
@@ -151,4 +151,4 @@ docs/     design notes
 
 VSL Finesse's own code is released under the [MIT licence](LICENSE).
 
-The app and the command line tool are built with [JUCE](https://juce.com) 9, which is licensed separately: AGPLv3, or a JUCE commercial licence. A build you give to other people that links JUCE under the AGPLv3 has to be passed on under the AGPLv3 as a whole, with its source. The engine (`engine/`) doesn't use JUCE and is plain MIT.
+The app and the command line tool are built with [JUCE](https://juce.com) 9, which is licensed separately: AGPLv3, or a JUCE commercial licence. A build you give to other people that links JUCE under the AGPLv3 has to be passed on under the AGPLv3 as a whole, with its source. The engine (`engine/`) doesn't use JUCE and is plain MIT. The app also uses [Zstandard](https://github.com/facebook/zstd) (BSD licence) to read Synchron Player's saved state.

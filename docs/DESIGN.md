@@ -56,7 +56,9 @@ Waiting on: two files from "Save instrument details to Desktop" (instrument menu
 - The articulation tree is `data.custom.sampler.rootNode`: `nodes` (each with a `title`, e.g. Short notes, Long notes, Legato, and its own children) and `currentNodeIndex` for the current selection.
 - CC assignments are in `data.custom.paramControl.mappings` (e.g. `nodeXFade0: {source: "cc3"}`). They differ between Flow and Precision presets of the same instrument, so the engine's CC1/velocity strategy only holds for the Precision presets.
 
-JUCE has no Zstandard, so reading this needs the zstd library (BSD licence).
+JUCE has no Zstandard, so the app builds the zstd library (BSD licence) from source. `io/SynchronState.cpp` reads the plist and the JSON.
+
+**Opening in Precision.** Synchron Player starts in Flow, but the engine's dynamics strategies are written for the Precision presets. When the app loads Synchron Player with no saved state (a fresh instrument, not a session), it reads the new instance's state and, if the view is Flow with no Flow preset loaded, changes `currentSkin` to `"SynchronPlayer"` and gives the state back. Only that one value is changed, as text, so the rest of the JSON stays exactly as Synchron wrote it; the other plist entries are copied byte for byte. A loaded Flow preset and a restored session are never touched.
 
 The picker should follow the dynamics buttons' model: drag across bars to select, then choose; with no selection it applies to the whole part. Keyswitches it writes must still land just before the notes they switch.
 

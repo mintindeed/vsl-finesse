@@ -52,6 +52,7 @@ public:
     // without loading them; elsewhere it uses the scanned plug-in list.
     juce::Array<juce::PluginDescription> instrumentPlugins() const;
     static bool isViennaInstrument (const juce::PluginDescription&);
+    static bool isSynchronPlayer (const juce::PluginDescription&);
     void showPluginScanner (juce::Component* parent);
     void loadPlugin (Track&, const juce::PluginDescription&, std::function<void (juce::String error)> done,
                      juce::MemoryBlock state = {});
