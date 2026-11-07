@@ -162,6 +162,24 @@ void AppContext::setFileControllers (FileControllers f)
         }
 }
 
+bool AppContext::replaceFileDynamics()
+{
+    return properties.getUserSettings()->getBoolValue ("replaceFileDynamics", true);
+}
+
+void AppContext::setReplaceFileDynamics (bool replace)
+{
+    properties.getUserSettings()->setValue ("replaceFileDynamics", replace);
+    properties.saveIfNeeded();
+    for (const auto& t : session.tracks())
+        if (t->settings.replaceFileDynamics != replace)
+        {
+            t->settings.replaceFileDynamics = replace;
+            if (t->hasMidi)
+                session.process (*t);
+        }
+}
+
 void AppContext::decideControllers (Track& t)
 {
     switch (fileControllers())
@@ -356,6 +374,7 @@ vslf::Settings AppContext::defaultSettings()
         vslf::io::settingsFromJson (juce::JSON::parse (text), s);
     if (auto t = vslf::presetTypeFromString (properties.getUserSettings()->getValue ("presetType").toStdString()))
         s.presetType = *t;
+    s.replaceFileDynamics = replaceFileDynamics();
     return s;
 }
 

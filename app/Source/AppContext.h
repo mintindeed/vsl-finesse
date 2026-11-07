@@ -44,6 +44,10 @@ public:
     FileControllers fileControllers();
     // Always and Never apply to the tracks already open, too.
     void setFileControllers (FileControllers);
+    // Keeping the file's controllers: whether the app's own CC1 and CC11 still
+    // replace the file's (the default). Applies to every open track, too.
+    bool replaceFileDynamics();
+    void setReplaceFileDynamics (bool);
 
     // --- Instrument profiles and settings ----------------------------------
     void setProfile (Track&, const std::string& id);

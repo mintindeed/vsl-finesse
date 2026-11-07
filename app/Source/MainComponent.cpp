@@ -33,8 +33,9 @@ public:
         heading.setFont (juce::FontOptions (15.0f, juce::Font::bold));
         intro.setText ("Controller data a file brings with it, such as CC20 (Synchron's tremolo crossfade) or "
                        "CC64 (sustain pedal). Remove it:", juce::dontSendNotification);
-        note.setText ("Either way, VSL Finesse's own dynamics (CC1) and expression (CC11) replace the file's where it "
-                      "writes them. Always and Never also apply to the tracks already open.", juce::dontSendNotification);
+        note.setText ("Always and Never also apply to the tracks already open. Unticking the box means a CC1 or CC11 "
+                      "line in your file wins, and VSL Finesse writes none of its own for that controller.",
+                      juce::dontSendNotification);
         note.setColour (juce::Label::textColourId, theme::textDim);
         for (auto* l : { &heading, &intro, &note })
         {
@@ -43,6 +44,9 @@ public:
         }
         intro.setFont (juce::FontOptions (13.0f));
         note.setFont (juce::FontOptions (12.0f));
+        for (auto* l : { &intro, &note })
+            l->setMinimumHorizontalScale (1.0f); // wrap, don't squash
+
 
         const AppContext::FileControllers choices[] = { AppContext::FileControllers::Always, AppContext::FileControllers::Never,
                                                         AppContext::FileControllers::Ask };
@@ -54,11 +58,20 @@ public:
             b->setToggleState (app.fileControllers() == choices[i], juce::dontSendNotification);
             b->onClick = [this, b, choice = choices[i]] {
                 if (b->getToggleState())
+                {
                     app.setFileControllers (choice);
+                    refreshEnabled();
+                }
             };
             addAndMakeVisible (b);
         }
-        setSize (460, 230);
+
+        replaceDynamics.setButtonText ("Replace CC1 and CC11 with mine. It's the bulk of what this app does");
+        replaceDynamics.setToggleState (app.replaceFileDynamics(), juce::dontSendNotification);
+        replaceDynamics.onClick = [this] { app.setReplaceFileDynamics (replaceDynamics.getToggleState()); };
+        addAndMakeVisible (replaceDynamics);
+        refreshEnabled();
+        setSize (500, 250);
     }
 
     void paint (juce::Graphics& g) override { g.fillAll (theme::panel); }
@@ -70,14 +83,20 @@ public:
         intro.setBounds (r.removeFromTop (38));
         for (auto* b : buttons)
             b->setBounds (r.removeFromTop (26).withTrimmedLeft (4));
+        r.removeFromTop (6);
+        replaceDynamics.setBounds (r.removeFromTop (26).withTrimmedLeft (4));
         r.removeFromTop (8);
         note.setBounds (r);
     }
 
 private:
+    // With Always, the file's controllers are gone, so there's nothing to replace.
+    void refreshEnabled() { replaceDynamics.setEnabled (app.fileControllers() != AppContext::FileControllers::Always); }
+
     AppContext& app;
     juce::Label heading, intro, note;
     juce::OwnedArray<juce::ToggleButton> buttons;
+    juce::ToggleButton replaceDynamics;
 };
 
 // Bump to show the welcome overlay again after its content changes.

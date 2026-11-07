@@ -648,3 +648,30 @@ TEST_CASE ("kept controllers stay, except the ones the engine writes itself")
     REQUIRE (count (r.part, 1) == 1);
     CHECK (controllerAt (r.part, 1, 0) == 90);
 }
+
+TEST_CASE ("kept controllers: the file's CC1 and CC11 win when the app's replacing is off")
+{
+    auto part = makePart (line (8, 480));
+    part.controllers = { { 0, 1, 90, 1 }, { 960, 1, 40, 1 }, { 0, 20, 64, 1 } }; // CC1 and CC20, no CC11
+    auto count = [] (const Part& p, int cc) { return (int) controllersFor (p, cc).size(); };
+
+    Settings s;
+    s.presetType = PresetType::VelXFSustain;
+    s.keepControllers = true;
+    s.replaceFileDynamics = false;
+
+    const auto r = finesse (part, violinProfile(), s);
+    CHECK (count (r.part, 1) == 2);                // the file's two events, exactly
+    CHECK (controllerAt (r.part, 1, 0) == 90);
+    CHECK (controllerAt (r.part, 1, 960) == 40);
+    CHECK (count (r.part, 20) == 1);
+    CHECK (count (r.part, 11) > 0);                // the file has no CC11, so the app's is written
+    CHECK (r.report.controllersRemoved == 0);
+    CHECK (r.report.controllersKept == 3);
+
+    // Removing the file's controllers: nothing of the file's is left to win.
+    s.keepControllers = false;
+    const auto removed = finesse (part, violinProfile(), s);
+    CHECK (count (removed.part, 20) == 0);
+    CHECK (count (removed.part, 1) > 2);
+}
