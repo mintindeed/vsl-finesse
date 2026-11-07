@@ -31,9 +31,10 @@ These are the design decisions everything else follows. A contribution that work
 
 ## What's welcome
 
-- **Other VSL products.** The app is developed with the SYNCHRON-ized Special Edition Vol. 1 and Vol. 2 and the free Big Bang Orchestra collections, because that's what its author owns. Testing it with other Synchron libraries, the PLUS volumes, the paid Big Bang Orchestra collections or Vienna Instruments, and making it work well with them, is very welcome. Reading what each preset offers (rather than adding a table for each product) usually gets furthest.
-- **Other DAWs.** Only Logic Pro has been tried. Reports and fixes for other DAWs are welcome: note-name conventions, how the exported MIDI file is read, getting it back onto a track.
-- **Remapping controllers.** Dynamics go to CC1 and expression to CC11, as the Special Editions' Precision presets expect (an instrument profile's `dynamicsCC` and `expressionCC` can change them, but only by editing its JSON). The app doesn't follow a preset whose controls were reassigned to other CCs, translate to a template's own controller numbers, or do any other remapping. Requests and contributions for this are welcome.
+- **Other VSL products, other DAWs, and remapping controllers.** The README lists [what the app has been tried with and its known gaps](README.md#what-it-works-with-and-where-help-is-welcome); widening any of them is very welcome. Some pointers:
+  - For another VSL product, read what its presets offer (as the app does for the Special Editions) rather than adding a table for the product.
+  - For another DAW, the likely differences are note-name conventions, how the exported MIDI file is read, and getting it back onto a track.
+  - Remapping could start from the instrument profile's `dynamicsCC` and `expressionCC`, which today can only be changed by editing its JSON.
 - **Bug reports**, with the MIDI file if you can share it, the Synchron preset you used (its path, e.g. "02 VelXF - MOD/01 Violin I - VelXF"), and what you heard against what you expected.
 - **Synchron presets the app hasn't seen.** On a track with the preset loaded, use **Save instrument details to Desktop** in the instrument menu and attach the file. New trees (a third key-switched level, other Dimension Controls, other libraries) are exactly how the app learns; each becomes a test fixture.
 - **Better performance rules**, with the musical reasoning and a test. Before/after audio is the best argument.
@@ -53,7 +54,7 @@ If you're not sure whether something fits, open an issue and ask before you buil
 1. **Discuss first** for anything bigger than a fix: open an issue describing what you'd like to change and why.
 2. **Build and test locally**: see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Every engine behaviour change gets a unit test in `tests/`.
 3. **Update the changelog** in the same commit for anything users will notice ([how](docs/DEVELOPMENT.md#versions-and-the-changelog)), and the documentation it touches: the [README](README.md) for using the app, [METHODOLOGY.md](docs/METHODOLOGY.md) for how it performs, [DEVELOPMENT.md](docs/DEVELOPMENT.md) for the code, this file for principles and the roadmap.
-4. **Open a pull request**, one topic per pull request. It builds and tests on GitHub Actions. The repository is private, so Actions minutes are billed (macOS minutes count ten times): batch related changes into one push, and don't push just to re-run a build.
+4. **Open a pull request**, one topic per pull request. It builds and tests on GitHub Actions; the repository's Actions minutes are billed, so read [Continuous integration](docs/DEVELOPMENT.md#continuous-integration) first.
 
 Write like the existing code and documentation: comments say why, not what; documentation is plain, direct British English, written for the reader it's meant for.
 

@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - VSL Finesse is now free software under the GNU AGPLv3 (see `LICENSE.md`), the licence that JUCE, which the app is built with, requires for open-source apps.
 
 ### Changed
+- The welcome screen names the libraries VSL Finesse is made for by VSL's product name, the SYNCHRON-ized Special Edition.
 - In the VelXF presets, Marcato velocities are no longer kept exactly as written: velocity sets Marcato's attack there, so the app now shapes it (your file's accents still count). Other notes' velocities stay as written, as before.
 - Opening a MIDI file on a track with no instrument now loads Synchron Player automatically, if it's installed. Click **Edit** to open it and load your preset. You can still pick another instrument from the track's instrument button.
 - Synchron Player now opens in its **Precision** view instead of Flow when the app loads it. The app's preset folder choices (VelXF sus - MOD, VelXF - MOD, Velocity) are Precision presets. A Flow preset you've loaded yourself is left alone, and so is a track restored from a session.

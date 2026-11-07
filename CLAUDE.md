@@ -6,15 +6,40 @@
 - Versions follow semantic versioning. The app is in alpha, so versions stay below 1.0.0: bump the **minor** version (0.x.0) for new features or behaviour changes, the **patch** version (0.x.y) for fixes only.
 - When a change is released (pushed to `main` for the user to try), move the `[Unreleased]` entries under a new version heading with the date, bump `VERSION` in the top-level `CMakeLists.txt` to match, and update the links at the bottom of `CHANGELOG.md`.
 - Pure refactors, test-only or CI-only changes don't need an entry unless they change what users get.
+- Released entries are history: don't rewrite them when the docs move or names change.
 
 ## Docs
 
-Each document has one reader. Keep them in step with the app:
+Each document has one reader:
 
-- `README.md` (Standard Readme): for a musician. What the app is and is for, how to get it running, how to use it. No implementation detail.
-- `docs/METHODOLOGY.md` (explanation): how the app performs: the KTH rules, human touches, dynamics, articulations, crossfaded articulations, note shapes, with the numbers. Update it with every change to how the app performs.
-- `docs/DEVELOPMENT.md` (how-to and reference): building, testing, architecture, file formats, Synchron Player's state, CI, versioning, signed builds.
-- `CONTRIBUTING.md`: the app's intent and principles (the design decisions), what contributions are welcome, how to contribute, and the roadmap. New design decisions and planned features go here.
+- `README.md` (Standard Readme): for a musician. What the app is and is for, what it works with, how to get it running, how to use it. No implementation detail.
+- `docs/METHODOLOGY.md` (Diátaxis explanation): how the app performs, with the numbers.
+- `docs/DEVELOPMENT.md` (Diátaxis how-to and reference): building, testing, architecture, file formats, Synchron Player's state, CI, versioning, signed builds.
+- `CONTRIBUTING.md`: the app's intent and principles (the design decisions), what contributions are welcome, how to contribute, and the roadmap.
+
+### Where each change goes
+
+Before committing, check every place listed for the kind of change you made. Several facts deliberately live in two places (a doc and the app's own text, or a rule for agents and the same rule for people); those pairs are marked **both**.
+
+| You changed | Update |
+|---|---|
+| How the app performs (any engine behaviour or constant) | `docs/METHODOLOGY.md`: the section and its numbers, and the "Step by step" table if a stage changed. The comment at the top of the engine file. `CHANGELOG.md`. `README.md` only if what the user does or sees changes. |
+| What the user does or sees (UI, menus, settings, dialogs, tooltips) | `README.md` Usage, and **both** the app's own text that says the same thing: `WelcomeOverlay.cpp`, the Settings window in `MainComponent.cpp`, dialogs in `AppContext.cpp`, tooltips. `CHANGELOG.md`. |
+| macOS permissions | **All of**: README "Permissions macOS asks for", `WelcomeOverlay.cpp`, the Info.plist purpose strings (`PLIST_TO_MERGE` in `app/CMakeLists.txt`), DEVELOPMENT "macOS permissions". |
+| Something learned about Synchron Player (a new preset dump) | A fixture in `tests/SynchronTrees.h` and a test, **both** DEVELOPMENT "Synchron Player's saved state" (including the presets table), and METHODOLOGY if it changes what the app does. |
+| What the app has been tried with (VSL products, DAWs) or a known gap | README "What it works with, and where help is welcome" only; CONTRIBUTING links to it. |
+| Command line options | **both** `usage()` in `cli/Main.cpp` and DEVELOPMENT "Command line tool" (kept identical). |
+| Code structure, files, build, file formats | `docs/DEVELOPMENT.md` (Project layout, Architecture, the format sections). |
+| A design decision or principle | CONTRIBUTING "Principles". |
+| A planned feature, or one that shipped | CONTRIBUTING "Roadmap": add it, or remove it once built (it's then documented in README and METHODOLOGY). |
+| Versioning, changelog or CI rules | **both** this file and DEVELOPMENT ("Versions and the changelog", "Continuous integration"). CONTRIBUTING only links to them. |
+
+### Names
+
+- VSL's products: Vienna **Synchron Player**; the **SYNCHRON-ized Special Edition** (Vol. 1, Vol. 2, and their PLUS volumes), whose presets Synchron Player lists under "Studio Special Editions"; the **Big Bang Orchestra** collections. "Studio Special Editions" names the preset folder, not the product.
+- Synchron's terms: Dimension Tree, dimension, Dimension Control (Dim.Ctrl/A-H), Mix and XFade slots; in VSL Finesse's own words, "crossfaded articulations".
+- Note names follow Logic (C3 = middle C, MIDI 60). Synchron Player calls middle C "C4", so its C1 is Logic's C0. Check a note name against `vslf::noteName` before writing it in a doc.
+- British spelling (licence, behaviour, colour).
 
 ## Build and test
 

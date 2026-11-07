@@ -14,8 +14,8 @@ std::vector<Section> sections (bool synchronInstalled)
     std::vector<Section> s;
 
     s.push_back ({ "Made for VSL Synchron Player",
-                   "VSL Finesse was designed to play through Vienna Symphonic Library's Synchron Player and the Studio "
-                   "Special Editions. Synchron Player loads on a track by itself when you open a MIDI file, and the app "
+                   "VSL Finesse was designed to play through Vienna Symphonic Library's Synchron Player and the "
+                   "SYNCHRON-ized Special Edition. Synchron Player loads on a track by itself when you open a MIDI file, and the app "
                    "follows the preset you load in it. You can pick other virtual instruments from a track's instrument "
                    "button, but they may not behave as intended." });
     if (! synchronInstalled)
