@@ -108,6 +108,17 @@ struct InstrumentProfile
     // which string each note is played on, so string crossings get time.
     std::vector<int> openStrings;
 
+    // The player's performance controls, where the loaded preset has them
+    // (Synchron Player: Attack CC22, Release CC23, Legato blur CC33).
+    // controller -1: not available, nothing is written. centre: the preset's
+    // own value, 0..1.
+    struct PerformControl
+    {
+        int controller = -1;
+        double centre = 0.0;
+    };
+    PerformControl attackControl, releaseControl, legatoBlurControl;
+
     // Wind and brass players have to breathe: phrases longer than this are
     // split. 0 = no limit.
     double maxBreathSeconds = 0.0;

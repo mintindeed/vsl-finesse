@@ -218,6 +218,7 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
         detail::applyTiming (ctx);
         detail::writeControllers (ctx);
         detail::writeBlends (ctx);
+        detail::writePerformControls (ctx);
     }
     else
     {

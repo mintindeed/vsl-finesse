@@ -802,3 +802,101 @@ TEST_CASE ("a crossfade (XF tremolo) leans in towards the phrase peak and back")
     CHECK (end < peak);
     CHECK (r.report.blends[0] == "Marcato: Attack follows the phrases (CC20)");
 }
+
+// --- Performance controls ----------------------------------------------------------
+namespace
+{
+InstrumentProfile performProfile()
+{
+    auto p = violinProfile();
+    p.attackControl = { 22, 0.0 };
+    p.releaseControl = { 23, 0.5 };
+    p.legatoBlurControl = { 33, 0.235 };
+    return p;
+}
+
+// The value a controller has when note i starts.
+int valueAtNote (const Result& r, int cc, size_t i) { return controllerAt (r.part, cc, r.part.notes[i].start); }
+} // namespace
+
+TEST_CASE ("release: notes ring at phrase ends and before rests, short detached notes stop cleanly")
+{
+    Settings s;
+    s.humanizeTimingMs = 0.0;
+    std::vector<Note> notes;
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (i * 480, 470, 67 + i));        // a legato phrase...
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (3840 + i * 240, 80, 72));       // ...a rest, then short detached notes...
+    notes.push_back (note (6720, 960, 67));                    // ...and a final note
+    const auto r = finesse (makePart (notes), performProfile(), s);
+    REQUIRE (r.part.notes.size() == 9);
+
+    const int mid = valueAtNote (r, 23, 1), phraseEnd = valueAtNote (r, 23, 3);
+    const int detached = valueAtNote (r, 23, 5), last = valueAtNote (r, 23, 8);
+    CHECK (mid == 64);              // the preset's own release
+    CHECK (phraseEnd > mid);
+    CHECK (detached < mid);
+    CHECK (last > phraseEnd);
+}
+
+TEST_CASE ("attack: softer for quiet entries only")
+{
+    Settings s;
+    std::vector<Marking> markings = { { Marking::Kind::Dynamic, 0, 1920, 0 },        // pp
+                                      { Marking::Kind::Dynamic, 3840, 5760, 5 } };   // ff
+    std::vector<Note> notes;
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (i * 480, 470, 67 + i));
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (3840 + i * 480, 470, 67 + i));
+    const auto r = finesse (makePart (notes), performProfile(), s, markings);
+
+    CHECK (valueAtNote (r, 22, 0) > 15); // the pp entry comes out of nothing
+    CHECK (valueAtNote (r, 22, 1) == 0); // the preset's attack after it
+    CHECK (valueAtNote (r, 22, 4) == 0); // the ff entry keeps it
+}
+
+TEST_CASE ("legato blur: only at joins, smoother when slow and soft, cleaner when fast")
+{
+    Settings s;
+    s.humanizeTimingMs = 0.0;
+    std::vector<Note> notes;
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (i * 1440, 1440, 60 + 2 * i));        // slow connected notes
+    for (int i = 0; i < 8; ++i)
+        notes.push_back (note (7680 + i * 96, 96, 64 + (i % 3)));   // a fast connected run, after a rest
+    const auto r = finesse (makePart (notes), performProfile(), s);
+
+    const int slow = valueAtNote (r, 33, 2), fast = valueAtNote (r, 33, 8);
+    CHECK (slow > 30);   // preset 0.235 = 30
+    CHECK (fast < slow);
+    // Nothing at the first note: there's no join to blur.
+    for (const auto& c : controllersFor (r.part, 33))
+        CHECK (c.tick > r.part.notes[0].start);
+}
+
+TEST_CASE ("performance controls: each is set before its note, steps aside for kept file controllers, and needs the preset")
+{
+    Settings s;
+    auto notes = line (8, 480);
+    auto r = finesse (makePart (notes), performProfile(), s);
+    for (const auto& c : controllersFor (r.part, 23))
+    {
+        // Every release value lands in the gap before a note starts.
+        const bool beforeANote = std::any_of (r.part.notes.begin(), r.part.notes.end(), [&] (const Note& n) {
+            return c.tick <= n.start && c.tick >= n.start - r.part.tempo.ticksForMs ((double) n.start, 20.0);
+        });
+        CHECK (beforeANote);
+    }
+
+    s.keepControllers = true;
+    auto part = makePart (notes);
+    part.controllers = { { 0, 23, 100, 1 } };
+    r = finesse (part, performProfile(), s);
+    REQUIRE (controllersFor (r.part, 23).size() == 1);
+    CHECK (controllersFor (r.part, 23)[0].value == 100);
+    CHECK (! controllersFor (r.part, 22).empty()); // the others are still shaped
+
+    CHECK (controllersFor (finesse (makePart (notes), violinProfile(), Settings {}).part, 23).empty());
+}

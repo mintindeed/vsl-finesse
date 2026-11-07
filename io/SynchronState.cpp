@@ -483,7 +483,10 @@ namespace
         {
             if (! path.isEmpty() && hasPatch (node))
             {
-                SynchronArticulation a { path, keys, layersOf (node, crossfading) };
+                SynchronArticulation a;
+                a.path = path;
+                a.keys = keys;
+                a.layers = layersOf (node, crossfading);
                 readBlend (node, mappings, a);
                 out.push_back (a);
             }
@@ -518,6 +521,13 @@ SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson)
         if (! v.isVoid() && ! v.isUndefined())
             result.controlValues[slot] = juce::jlimit (0.0, 1.0, (double) v);
     }
+    for (const char* name : { "attack", "release", "legatoBlur" })
+    {
+        const auto source = stateJson["data"]["custom"]["paramControl"]["mappings"][name]["source"].toString();
+        const auto value = stateJson["data"]["parameters"][name];
+        if (source.startsWith ("cc") && source.substring (2).containsOnly ("0123456789") && ! value.isVoid())
+            result.performControls[name] = { source.substring (2).getIntValue(), juce::jlimit (0.0, 1.0, (double) value) };
+    }
 
     // Follow the selection down the key-switched levels.
     auto node = root;
@@ -547,8 +557,17 @@ std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBl
 }
 
 vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::vector<SynchronArticulation>& tree,
-                                  const std::vector<int>& startKeys, const std::map<int, double>& controlValues)
+                                  const std::vector<int>& startKeys, const std::map<int, double>& controlValues,
+                                  const std::map<std::string, std::pair<int, double>>& performControls)
 {
+    auto perform = [&] (const char* name, vslf::InstrumentProfile::PerformControl& into) {
+        if (const auto it = performControls.find (name); it != performControls.end())
+            into = { it->second.first, it->second.second };
+    };
+    perform ("attack", profile.attackControl);
+    perform ("release", profile.releaseControl);
+    perform ("legatoBlur", profile.legatoBlurControl);
+
     if (tree.empty())
         return profile;
 

@@ -16,7 +16,7 @@ int Track::flatDynamics() const
 
 vslf::InstrumentProfile Track::engineProfile() const
 {
-    return vslf::io::withTree (profile, synchronArticulations, articulationStartKeys, dimensionControls);
+    return vslf::io::withTree (profile, synchronArticulations, articulationStartKeys, dimensionControls, performControls);
 }
 
 bool Track::isPickMissing (const vslf::ArticulationMarking& m) const
@@ -117,7 +117,7 @@ void Session::process (Track& t)
     if (t.synchronArticulations.empty())
         for (const auto& m : picks.markings)
             if (const auto* found = named.findArticulation (m.keys); found == nullptr || found->keys.size() != m.keys.size())
-                named.articulations.push_back ({ m.keys, { m.name, 0.0 } });
+                named.articulations.push_back ({ m.keys, { m.name, 0.0, {}, {} } });
 
     t.result = vslf::finesse (t.input, named, t.settings, t.markings, picks);
     for (const auto& name : missing)

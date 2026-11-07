@@ -500,3 +500,22 @@ TEST_CASE ("crossfaded dimensions: the kind from Mix/XFade, the control's source
     CHECK (profile.resolve (tremolo->keys).blend.centre == 0.0);
     CHECK (profile.resolve (tremolo->keys).blend.controller == 20);
 }
+
+TEST_CASE ("performance controls: attack, release and legato blur, with the preset's values")
+{
+    const auto a = treeOf (trees::violinVelXFSus);
+    REQUIRE (a.performControls.size() == 3);
+    CHECK (a.performControls.at ("attack") == std::pair<int, double> { 22, 0.0 });
+    CHECK (a.performControls.at ("release").first == 23);
+    CHECK (a.performControls.at ("release").second == doctest::Approx (0.5));
+    CHECK (a.performControls.at ("legatoBlur").first == 33);
+    CHECK (a.performControls.at ("legatoBlur").second == doctest::Approx (0.235).epsilon (0.01));
+    CHECK (treeOf (trees::harp).performControls.at ("legatoBlur").second == 0.0);
+
+    const auto profile = io::withTree (InstrumentProfile {}, a.choices, {}, a.controlValues, a.performControls);
+    CHECK (profile.releaseControl.controller == 23);
+    CHECK (profile.releaseControl.centre == doctest::Approx (0.5));
+    CHECK (profile.attackControl.controller == 22);
+    CHECK (profile.legatoBlurControl.controller == 33);
+    CHECK (InstrumentProfile {}.releaseControl.controller == -1); // without Synchron: nothing
+}

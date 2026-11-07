@@ -58,6 +58,9 @@ namespace vslf::io
         std::vector<SynchronArticulation> choices; // in the tree's order
         std::vector<int> currentKeys;              // the selection saved in the state
         std::map<int, double> controlValues;        // Dimension Control values (slot -> 0..1) saved in the state
+        // Performance controls ("attack", "release", "legatoBlur"): the CC
+        // each is mapped to, and its value in the state.
+        std::map<std::string, std::pair<int, double>> performControls;
     };
 
     // From the JSON inside the state (see synchronStateJson). Empty if it has
@@ -79,7 +82,8 @@ namespace vslf::io
     // controlValues (the preset's Dimension Control values when it was
     // loaded) centre the crossfaded dimensions.
     vslf::InstrumentProfile withTree (vslf::InstrumentProfile, const std::vector<SynchronArticulation>&,
-                                      const std::vector<int>& startKeys = {}, const std::map<int, double>& controlValues = {});
+                                      const std::vector<int>& startKeys = {}, const std::map<int, double>& controlValues = {},
+                                      const std::map<std::string, std::pair<int, double>>& performControls = {});
 
     // Picks with their keys looked up again by name in the loaded preset's
     // tree, since the same keys can mean another articulation in another

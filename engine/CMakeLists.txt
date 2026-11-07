@@ -7,6 +7,7 @@ add_library (vslf_engine STATIC
     src/Engine.cpp
     src/Ingest.cpp
     src/Pauses.cpp
+    src/Performance.cpp
     src/Profile.cpp
     src/TempoMap.cpp
     src/Timing.cpp)

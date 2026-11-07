@@ -93,6 +93,15 @@ In the Velocity presets, Marcato's attack (`nodeXFade0`) follows CC1, and the ap
 
 The picker follows the dynamics buttons' model: drag across bars to select, then pick from the **Articulation** menu (nested like the tree); with no selection it applies to the whole part. A new pick replaces the part of an older one it covers. Without a Synchron tree (another instrument, or no preset yet), the menu offers the profile's named articulations and the key combinations in the file. The picked names also name those key combinations in the Articulations legend.
 
+### Performance controls (built: `engine/src/Performance.cpp`)
+
+Every Special Edition preset seen maps Synchron's performance controls the same way: Attack CC22 (0), Release CC23 (0.5) and Legato blur CC33 (0.235; 0 on harp and timpani, which have no legato), from `paramControl.mappings` and `data.parameters`. They're how a note starts, ends and joins the next one, which a player varies without thinking, so they work together and are shaped per note around the preset's value (captured at preset load, `Track::performControls`, saved in sessions) and scaled by Character:
+- **Release:** + 0.30 for the last note, + 0.12 to 0.24 at a phrase end or before a rest of 0.3 s or more (longer rests ring longer), − up to 0.18 for notes under 0.25 s with a gap after, − 0.08 before a breath.
+- **Attack:** + 0.9 × (0.5 − level) for an entry (phrase start or after 0.25 s) below level 0.5 that isn't short (pp ≈ + 0.23); the preset's value otherwise.
+- **Legato blur:** only on connected notes (gap ≤ `legatoMaxGapMs`): + up to 0.12 when the notes are more than 0.6 s apart, − up to 0.12 under 0.25 s, + 0.25 × (0.6 − level).
+
+Each value is set `ccLeadMs` before its note, never before the previous note starts. Nothing is written without a Synchron preset (another instrument's CC22 could be anything) or on a controller already carrying something: the file's kept controllers, the engine's dynamics and expression, a crossfaded articulation's control. Synchron's humanize controls are left alone (the app varies timing and velocity itself), and so are timbre, filter and dynamic range (tone choices, not phrasing).
+
 ## Next up
 
 ### Crossfaded articulations (built: `engine/src/Blends.cpp`)

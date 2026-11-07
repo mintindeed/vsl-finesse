@@ -118,5 +118,6 @@ void findPauses (Context&);
 void applyTiming (Context&);
 void writeControllers (Context&);
 void writeBlends (Context&);
+void writePerformControls (Context&);
 
 } // namespace vslf::detail

@@ -47,6 +47,9 @@ public:
     // The preset's Dimension Control values (slot -> 0..1) when it was
     // loaded: the centre of each crossfaded articulation.
     std::map<int, double> dimensionControls;
+    // Its performance controls (attack, release, legato blur: CC and value)
+    // when it was loaded, the centre of each.
+    std::map<std::string, std::pair<int, double>> performControls;
 
     struct Audio
     {

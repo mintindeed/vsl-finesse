@@ -511,6 +511,7 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
             {
                 track->articulationStartKeys = tree ? tree->currentKeys : std::vector<int> {};
                 track->dimensionControls = tree ? tree->controlValues : std::map<int, double> {};
+                track->performControls = tree ? tree->performControls : std::map<std::string, std::pair<int, double>> {};
             }
             track->synchronPreset = presetPath;
             track->synchronArticulations = tree ? tree->choices : std::vector<vslf::io::SynchronArticulation> {};
@@ -611,6 +612,7 @@ void AppContext::followSynchronPreset (Track& t)
     {
         t.articulationStartKeys = tree->currentKeys;
         t.dimensionControls = tree->controlValues;
+        t.performControls = tree->performControls;
         changed = true;
     }
     if (! newPreset)
@@ -660,6 +662,8 @@ void AppContext::removePlugin (Track& t)
     destroyPlugin (session.swapPlugin (t, nullptr));
     t.hasPlugin = false;
     t.synchronArticulations.clear();
+    t.performControls.clear();
+    t.dimensionControls.clear();
     session.process (t);
 }
 
@@ -843,6 +847,10 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
         for (const auto& [slot, value] : t->dimensionControls)
             controls.add (juce::String (slot) + ":" + juce::String (value, 4));
         x->setAttribute ("dimensionControls", controls.joinIntoString (" "));
+        juce::StringArray perform;
+        for (const auto& [name, control] : t->performControls)
+            perform.add (juce::String (name) + ":" + juce::String (control.first) + ":" + juce::String (control.second, 4));
+        x->setAttribute ("performControls", perform.joinIntoString (" "));
 
         if (t->hasPlugin && t->audio.plugin != nullptr)
         {
@@ -913,6 +921,12 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
             if (c.contains (":"))
                 t.dimensionControls[c.upToFirstOccurrenceOf (":", false, false).getIntValue()]
                     = c.fromFirstOccurrenceOf (":", false, false).getDoubleValue();
+        for (const auto& c : juce::StringArray::fromTokens (x->getStringAttribute ("performControls"), " ", ""))
+        {
+            const auto parts = juce::StringArray::fromTokens (c, ":", "");
+            if (parts.size() == 3)
+                t.performControls[parts[0].toStdString()] = { parts[1].getIntValue(), parts[2].getDoubleValue() };
+        }
 
         const juce::File midi (x->getStringAttribute ("midi"));
         if (midi.existsAsFile())
