@@ -37,18 +37,47 @@ brew install cmake         # once
 
 **File → Save Session** stores the tracks, settings, dynamics markings, and each plug-in with its loaded preset.
 
-### What the engine does
+## How it performs
+
+### The KTH performance rules
+
+The engine is built on the ideas of the **KTH rule system for music performance**, developed since the 1980s at KTH, the Royal Institute of Technology in Stockholm (Johan Sundberg, Anders Friberg and colleagues), and tested in listening experiments. Each rule is a small, explainable observation about what human players do with a written note. Each rule has one strength setting, and combining a handful of rules makes a mechanical performance sound played. The rules below are the ones VSL Performer uses, adapted for Synchron Player's CC1, CC11 and velocity.
+
+| Rule | What players do | How the app applies it |
+|---|---|---|
+| **Phrase arch** | Grow towards the high point of a phrase and relax after it | Each phrase gets a peak (from its high and long notes); the dynamic rises to it and falls away more quickly after |
+| **High loud** | Play higher notes a little louder | Small dynamic lift for notes above the phrase's average pitch |
+| **Duration contrast** | Give long notes more weight than short ones | Long notes slightly fuller, short ones slightly lighter |
+| **Punctuation** | Leave tiny gaps where a melody groups | A brief lift where a phrase ends without a written rest (part of Human pauses) |
+| **Repetition articulation** | Separate repeated notes | Repeated pitches get a short gap so each note speaks |
+| **Beat stress** | Lean slightly on strong beats | Small velocity accents on downbeats (where velocity is the dynamic) |
+| **Final ending** | Ease off at the end | The last note of each phrase tapers, with the strongest taper on the final note of the piece |
+| **Noise** | No two notes are exactly alike | Small random variation in timing and velocity (see below) |
+
+The **Character** buttons set how strongly the rules are applied together: **Plain**, **Expressive** (the default) or **Very expressive**.
+
+### Human touches
+
+These go beyond the KTH rules, for the things orchestral players physically have to do:
+
+- **Breaths (winds and brass):** a phrase longer than the instrument's breath (about 6-8 seconds, depending on the instrument) is split at the most musical place: after a long note, at a leap, or before a strong beat. A breath (150 ms) is taken out of the end of the note before it.
+- **Bow crossings (strings):** the app works out which string each note is most likely played on, keeping to low positions and avoiding needless string changes. When the bow has to jump over a string between connected notes (a cello going from the C string straight to the A string), the earlier note is shortened slightly to give it time.
+- **Phrase lifts (everyone):** where a phrase ends without a written rest, the last note is shortened slightly, the way any player separates phrases.
+- **Small timing and velocity variation:** note starts move by a few milliseconds and velocities by a few steps. It's repeatable: the same file and settings always give the same result. **New variation** gives a different, equally repeatable version.
+- **Connected notes overlap slightly**, which triggers legato transitions in legato patches.
+
+The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pauses always come out of the end of the earlier note, so the beat never moves and the part stays in time with the rest of your song.
+
+### What the engine does, step by step
 
 | Step | What happens |
 |---|---|
 | Clean up | Keyswitches are set aside untouched. Existing CCs are removed. Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
 | Phrases | Rests, long notes and (for winds/brass) breath length split the line into phrases. Each phrase gets a peak, chosen from its high and long notes. |
-| Dynamics | A phrase arch (grow to the peak, relax after), higher notes slightly louder, long notes slightly fuller. This becomes one smooth CC1 line through the whole part. |
-| Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus small accents on strong beats and a little humanization. Otherwise left as written. |
+| Dynamics | Your markings (pp-ff, cresc., dim.) or the file's velocities set the base level. Phrase arch, high loud and duration contrast shape it into one smooth CC1 line through the whole part. |
+| Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus beat stress and a little variation. Otherwise left as written. |
 | Long notes | A gentle swell inside long notes (CC1, or CC11 in Velocity presets), and the last note of a phrase tapers (CC1 and CC11). |
-| Timing | Small humanized timing. Connected notes overlap slightly, repeated notes get a clean gap, and wind/brass phrases get a breath. Keyswitches always stay ahead of the note they switch. |
-
-The same file, settings and seed always produce the same result.
+| Timing | Small timing variation, slight overlaps for connected notes, gaps for repeated notes, and the human pauses. Keyswitches always stay ahead of the note they switch. |
 
 ## Command line
 
@@ -79,6 +108,10 @@ Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON 
 ```
 
 Synchron presets switch articulations with one key per level of the articulation tree: by default each octave is one level (C1-B1 picks the articulation, C2-B2 the type), and the current articulation is the combination of the latest key on each level. `level` overrides that for a key.
+
+## Changes
+
+See [CHANGELOG.md](CHANGELOG.md). Versions follow [semantic versioning](https://semver.org); the app is in alpha, so versions stay below 1.0.0 for now.
 
 ## Project layout
 
