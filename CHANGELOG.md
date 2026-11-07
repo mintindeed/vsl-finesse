@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-07
+
 ### Changed
 - The app is now called **VSL Finesse** (it was VSL Performer). The download is **VSL-Finesse-macOS** and the app is **VSL Finesse.app**; delete the old VSL Performer.app. macOS treats it as a new app, so it may ask again for permissions such as audio or file access.
 - The command line tool is now `vsl-finesse` (it was `vslp-finesse`).
@@ -69,7 +71,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Unit tests and a GitHub Actions build that produces a downloadable macOS app.
 
 [Unreleased]: https://github.com/mintindeed/vsl-finesse/compare/main...HEAD
-[0.3.1]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.4.0]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.3.1]: https://github.com/mintindeed/vsl-finesse/commit/9d58758
 [0.3.0]: https://github.com/mintindeed/vsl-finesse/commit/e014f4e
 [0.2.0]: https://github.com/mintindeed/vsl-finesse/commit/b9d4962
 [0.1.1]: https://github.com/mintindeed/vsl-finesse/commit/a21ecf6
