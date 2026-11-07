@@ -23,11 +23,11 @@ You stay in charge of the music: **you** choose the instrument, the preset and t
 ### What it works with, and where help is welcome
 
 VSL Finesse is developed with what its author owns:
-- **Vienna Synchron Player** with the **SYNCHRON-ized Special Edition Vol. 1 and Vol. 2**, using their **Precision** presets (Synchron Player lists them under "Studio Special Editions"), and the free **Big Bang Orchestra** collections.
+- **Vienna Synchron Player** with the **Studio Special Edition Vol. 1 and Vol. 2** (including their PLUS articulations), using their **Precision** presets, and the free **Big Bang Orchestra** collections.
 - **Logic Pro**: the app follows Logic's note names (C3 = middle C), and its result is meant to go back into Logic.
 
 Contributions that widen this are very welcome:
-- **Other VSL products.** Other Synchron libraries, the PLUS volumes, the paid Big Bang Orchestra collections, Vienna Instruments: anything that tests VSL Finesse with them and makes it work well. The app reads each preset's articulations and controls rather than relying on a list, so many may already work, but nobody has tried.
+- **Other VSL products.** Other Synchron libraries, the paid Big Bang Orchestra collections, the earlier SYNCHRON-ized Special Edition, Vienna Instruments: anything that tests VSL Finesse with them and makes it work well. The app reads each preset's articulations and controls rather than relying on a list, so many may already work, but nobody has tried.
 - **Other DAWs.** The exported file is standard MIDI, so any DAW can open it, but only Logic has been tried. Reports and fixes for Cubase, Studio One, Digital Performer, Reaper and the rest are welcome.
 - **Remapping controllers.** The app writes dynamics to CC1 and expression to CC11, as the Special Editions' Precision presets expect. It doesn't follow you if you've assigned Synchron's controls to other CCs, or translate to the controller numbers of your own template, and it does no other remapping. Requests and contributions for this are welcome too.
 
@@ -37,7 +37,7 @@ Other instruments can play the result, but may not behave as intended.
 
 You need:
 - A Mac.
-- [Vienna Synchron Player](https://www.vsl.co.at) with the SYNCHRON-ized Special Edition installed (Vienna Assistant installs both).
+- [Vienna Synchron Player](https://www.vsl.co.at) with the Studio Special Edition installed (Vienna Assistant installs both).
 - A DAW to take the result back into, such as Logic Pro.
 
 **Download the app.** Builds are made on GitHub for each pull request: open the pull request's **Checks** tab (or the repository's **Actions** tab, the latest successful **Build** run) and download **VSL-Finesse-macOS** at the bottom. Unzip it and move **VSL Finesse.app** to Applications. Builds are signed and notarized by Apple, so it opens with a double-click.

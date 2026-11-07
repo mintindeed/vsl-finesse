@@ -36,7 +36,7 @@ Before committing, check every place listed for the kind of change you made. Sev
 
 ### Names
 
-- VSL's products: Vienna **Synchron Player**; the **SYNCHRON-ized Special Edition** (Vol. 1, Vol. 2, and their PLUS volumes), whose presets Synchron Player lists under "Studio Special Editions"; the **Big Bang Orchestra** collections. "Studio Special Editions" names the preset folder, not the product.
+- VSL's products: Vienna **Synchron Player**; the **Studio Special Edition** (Vol. 1 and Vol. 2, with their PLUS articulations; Synchron Player's preset folder is "Studio Special Editions"), which the author owns and the app is made for; the free **Big Bang Orchestra** collections. Don't confuse the Studio Special Edition with the earlier **SYNCHRON-ized Special Edition**, a different, untested product.
 - Synchron's terms: Dimension Tree, dimension, Dimension Control (Dim.Ctrl/A-H), Mix and XFade slots; in VSL Finesse's own words, "crossfaded articulations".
 - Note names follow Logic (C3 = middle C, MIDI 60). Synchron Player calls middle C "C4", so its C1 is Logic's C0. Check a note name against `vslf::noteName` before writing it in a doc.
 - British spelling (licence, behaviour, colour).

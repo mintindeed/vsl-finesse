@@ -26,7 +26,7 @@ These are the design decisions everything else follows. A contribution that work
 - **The beat never moves.** Pauses come out of the end of the earlier note, and keyswitches and controllers arrive just before their note. The finessed part stays in time with the rest of the song.
 - **The user's data wins.** Keyswitches in the file are kept (except where the user picked an articulation). Controllers the user chose to keep are never overwritten, except the app's own CC1/CC11 where the user lets them be. A profile picked by hand isn't overruled until another preset is loaded.
 - **Repeatable.** The same file and settings always give the same result. All variation comes from the seed (`detail::noise`).
-- **Synchron Player first.** The app is made for Vienna Synchron Player and the SYNCHRON-ized Special Edition, using their Precision presets (listed under "Studio Special Editions" in Synchron Player). Other instruments can play the result, but nothing is written that only makes sense for Synchron unless the app knows Synchron is there.
+- **Synchron Player first.** The app is made for Vienna Synchron Player and the Studio Special Edition, using their Precision presets. Other instruments can play the result, but nothing is written that only makes sense for Synchron unless the app knows Synchron is there.
 - **A dependency-free, tested engine.** The engine (`engine/`) is plain C++ with no dependencies, and every behaviour change comes with a unit test.
 
 ## What's welcome
