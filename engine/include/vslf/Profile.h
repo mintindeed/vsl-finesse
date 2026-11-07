@@ -92,6 +92,12 @@ struct InstrumentProfile
 const char* toString (Family);
 std::optional<Family> familyFromString (const std::string&);
 
+// The profile an instrument name refers to ("Violin I", "Double Bass",
+// "Bass Clarinet.mid"), or nullptr. Looks for each profile's name, its
+// singular and its id in the text, and prefers the longest match, so "bass
+// clarinet" beats "clarinet". The generic profile is never picked.
+const InstrumentProfile* guessProfile (const std::string& text, const std::vector<InstrumentProfile>& profiles);
+
 // Note names use Logic's convention (60 = C3): "C3", "C#2", "Db2", "C-1".
 std::string noteName (int pitch);
 std::optional<int> parseNoteName (const std::string&);

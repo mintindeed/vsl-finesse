@@ -34,6 +34,9 @@ public:
 
     juce::PluginDescription pluginDescription;
     bool hasPlugin = false;
+    // Synchron Player preset last seen on this track. When it changes, the
+    // instrument profile and preset folder follow it.
+    juce::String synchronPreset;
 
     struct Audio
     {

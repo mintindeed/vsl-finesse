@@ -11,7 +11,8 @@
 
 // Owns everything with application lifetime and implements the user actions,
 // so the UI components stay thin.
-class AppContext : public juce::ChangeListener
+class AppContext : public juce::ChangeListener,
+                   private juce::Timer
 {
 public:
     AppContext();
@@ -52,10 +53,21 @@ public:
     // without loading them; elsewhere it uses the scanned plug-in list.
     juce::Array<juce::PluginDescription> instrumentPlugins() const;
     static bool isViennaInstrument (const juce::PluginDescription&);
+    static bool isSynchronPlayer (const juce::PluginDescription&);
+    bool isSynchronInstalled() const;
+    // The welcome overlay has told the user Synchron Player is missing, so the
+    // pop-up saying the same is skipped.
+    void synchronMissingExplained() { warnedSynchronMissing = true; }
     void showPluginScanner (juce::Component* parent);
     void loadPlugin (Track&, const juce::PluginDescription&, std::function<void (juce::String error)> done,
                      juce::MemoryBlock state = {});
+    // Loads Synchron Player into a track that has no instrument yet, if it's
+    // installed. Does nothing otherwise.
+    void loadDefaultInstrument (Track&);
     void removePlugin (Track&);
+    // If Synchron Player has loaded a different preset, sets the track's
+    // instrument profile and preset folder to match it.
+    void followSynchronPreset (Track&);
     void showPluginWindow (Track&);
 
     // Writes everything the instrument plug-in reports about itself (state,
@@ -72,8 +84,15 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void timerCallback() override;
     void closePluginWindow (Track*);
     void destroyPlugin (std::unique_ptr<juce::AudioPluginInstance>);
+
+    // Warnings that the app was built for Synchron Player, each shown once
+    // per run.
+    void warnSynchronMissing();
+    void warnOtherInstrument (const juce::String& name);
+    bool warnedSynchronMissing = false, warnedOtherInstrument = false;
 
     class PluginWindow;
     std::map<Track*, std::unique_ptr<PluginWindow>> pluginWindows;

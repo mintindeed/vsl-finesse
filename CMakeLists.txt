@@ -27,6 +27,26 @@ if (VSLF_BUILD_APP OR VSLF_BUILD_CLI OR VSLF_BUILD_TESTS)
         GIT_SHALLOW    TRUE)
     FetchContent_MakeAvailable (JUCE)
 
+    # Zstandard (BSD licence): Synchron Player compresses its saved state with
+    # it. Its own CMake project lives in build/cmake; SOURCE_SUBDIR points at a
+    # folder without a CMakeLists.txt, so only the sources are downloaded and
+    # the library is built from them here.
+    FetchContent_Declare (zstd
+        GIT_REPOSITORY https://github.com/facebook/zstd.git
+        GIT_TAG        v1.5.6
+        GIT_SHALLOW    TRUE
+        SOURCE_SUBDIR  doc)
+    FetchContent_MakeAvailable (zstd)
+    file (GLOB VSLF_ZSTD_SOURCES
+        "${zstd_SOURCE_DIR}/lib/common/*.c"
+        "${zstd_SOURCE_DIR}/lib/compress/*.c"
+        "${zstd_SOURCE_DIR}/lib/decompress/*.c")
+    add_library (vslf_zstd STATIC ${VSLF_ZSTD_SOURCES})
+    target_include_directories (vslf_zstd PUBLIC "${zstd_SOURCE_DIR}/lib")
+    # No assembly (it doesn't suit universal macOS builds) and no threads.
+    target_compile_definitions (vslf_zstd PRIVATE ZSTD_DISABLE_ASM ZSTD_MULTITHREAD_SUPPORT_DEFAULT=0)
+    set_target_properties (vslf_zstd PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
     add_subdirectory (io)
 endif()
 

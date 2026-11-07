@@ -49,11 +49,55 @@ What we know from the Studio Special Edition trumpet preset (Synchron Player scr
 
 Waiting on: two files from "Save instrument details to Desktop" (instrument menu on the track), one with Long notes > Marcato selected in Synchron and one with Staccato. Compare them to find where Synchron stores the tree and the current selection (state blob, parameters or program names). If the tree is readable, parse it; if not, fall back to a picker built from the keys used in the file plus names the user types once per instrument profile.
 
+**Synchron Player's state is readable** (found from two "Save instrument details" dumps, Synchron Player AU 1.1.0, November 2026):
+- The AU state is a binary plist. Its `PluginState` entry is a Zstandard frame (`28 b5 2f fd`) holding plain JSON: `{"version": 0, "data": {...}}`. (The `data` entry next to it is the AU parameter dump.)
+- `data.currentPreset` is the preset path, e.g. `Studio Special Editions/01 Solo strings/02 VelXF - MOD/01 Violin I - VelXF`. Flow presets start with `$FLOW_SE/`.
+- `data.meta.gui.currentSkin` is the view: `"SynchronPlayer"` for Precision, `"Flow"` for Flow. A Flow preset also carries `data.custom.sampler.flow` and `data.meta.gui.flow`; in Precision both are absent or null.
+- The articulation tree is `data.custom.sampler.rootNode`: `nodes` (each with a `title`, e.g. Short notes, Long notes, Legato, and its own children) and `currentNodeIndex` for the current selection.
+- CC assignments are in `data.custom.paramControl.mappings` (e.g. `nodeXFade0: {source: "cc3"}`). They differ between Flow and Precision presets of the same instrument, so the engine's CC1/velocity strategy only holds for the Precision presets.
+
+JUCE has no Zstandard, so the app builds the zstd library (BSD licence) from source. `io/SynchronState.cpp` reads the plist and the JSON.
+
+**Opening in Precision.** Synchron Player starts in Flow, but the engine's dynamics strategies are written for the Precision presets. When the app loads Synchron Player with no saved state (a fresh instrument, not a session), it reads the new instance's state and, if the view is Flow with no Flow preset loaded, changes `currentSkin` to `"SynchronPlayer"` and gives the state back. Only that one value is changed, as text, so the rest of the JSON stays exactly as Synchron wrote it; the other plist entries are copied byte for byte. A loaded Flow preset and a restored session are never touched.
+
+**Permissions.** Plug-ins run inside the app, so macOS attributes their file, network and keyboard access to VSL Finesse. The app's own code (and JUCE, as configured) uses no network, Bonjour or global keyboard APIs; the local network and Input Monitoring prompts come from the hosted plug-in. The app explains them in a first-run overlay (`WelcomeOverlay`, shown again when `welcomeVersion` is bumped) and in Info.plist purpose strings (`PLIST_TO_MERGE` in `app/CMakeLists.txt`; Input Monitoring has no purpose string).
+
+**Following the loaded preset.** The instrument profile and preset folder follow `currentPreset`. Its last part names the instrument (`01 Violin I - VelXF` → "Violin I", matched to a profile with `guessProfile`, longest match wins), and the numbered folder above it is the preset folder (`02 VelXF - MOD`). Synchron doesn't reliably tell the host when it loads a preset, so the app reads the state once a second for tracks whose Synchron window is open (presets are only picked there) and once when the window closes. Each track remembers the last preset path it saw; only a new path changes anything, so a profile picked by hand isn't overruled until another preset is loaded. The preset a plug-in starts with (none, or the session's) counts as seen.
+
 The picker should follow the dynamics buttons' model: drag across bars to select, then choose; with no selection it applies to the whole part. Keyswitches it writes must still land just before the notes they switch.
 
 ### Smarter breaths
 
 Today winds and brass breathe after a fixed amount of playing (`maxBreathSeconds` per profile, about 6-8 s). Make breath capacity depend on what's being played: loud, high and long-held passages use air faster (especially high brass), soft and low ones slower; a full breath at a real rest refills it, a short catch-breath only partly. Breathe at the most musical place within the allowed window (after long notes, before strong beats, at leaps). Pauses stay inside the earlier note so the beat never moves.
+
+### Onboarding as permission checks
+
+Replace the one-off welcome overlay with a series of checks that run whenever something the app needs is missing: at launch, and again when the app comes back to the front (the user may have changed System Settings meanwhile). Each failed check shows its own full-window screen; when all pass, nothing is shown.
+
+1. **Is Vienna Synchron Player installed?** If not: a screen saying the app was designed for VSL Synchron Player and may not work well with other virtual instruments. This one is informational, so it can be dismissed and is remembered until Synchron Player is installed (or removed again).
+2. **macOS permissions.** For each permission: check it, and if it's missing show step-by-step instructions (what it's for, what to click in the macOS prompt, or where it is in System Settings → Privacy & Security if it was denied) with a button that opens the right Settings pane. The screen only lets you continue once the permission is granted.
+
+**Order matters.** macOS asks the moment protected access happens, whoever does it. The checks must finish before anything that can trigger a prompt:
+- No plug-in is loaded (Synchron Player reads samples from removable volumes and talks to the network as soon as it loads): no default instrument, no session restore.
+- Files passed in at launch (opened from Finder, dropped on the Dock icon) are queued and opened afterwards.
+- No file dialog opens in a protected folder.
+
+The main window itself can be built behind the onboarding screens, since building it touches nothing protected, but the steps above are held back until onboarding finishes. A launch gate in `Main.cpp` that creates `AppContext`'s plug-in work only after the checks pass keeps this in one place.
+
+**What macOS lets an app check (to confirm when building this):**
+
+| Permission | Can it be checked without triggering the prompt? | Does the app itself need it? |
+| --- | --- | --- |
+| Input Monitoring ("keystrokes from any app") | Yes: `CGPreflightListenEventAccess()`; `CGRequestListenEventAccess()` asks. | No. A plug-in asks for it. |
+| Files on removable volumes | No public API. The only test is to touch a file there, which itself shows the prompt. | Only if the Vienna library is on an external drive (Synchron Player needs it). |
+| Files in Documents (and Desktop, Downloads) | Same: no check without access. | Only to save sessions there (the default save location). |
+| Local network | No public API to check. | No. Vienna's software asks for it. |
+
+Consequences to decide before building:
+- **Gating on permissions the app doesn't need is wrong.** Input Monitoring and local network are asked for by the plug-in, not needed by the app. A screen that won't let you continue until they're granted would force users to grant access the app doesn't use. Those two should be explained, not required.
+- **File permissions can't be checked silently.** "Check, then explain" isn't possible for them: the check is the prompt. Instead, explain first, then deliberately trigger the prompt from the onboarding screen (e.g. list the folder holding the Vienna library, found from Vienna's settings or picked by the user), and read the result. If it was denied, show the System Settings steps and re-test on return.
+- macOS shows each prompt only once. After a denial, only System Settings can change it, so the steps must cover that path. The Settings deep links (`x-apple.systempreferences:com.apple.preference.security?Privacy_…`) change between macOS versions and need checking on current macOS.
+- The purpose strings in Info.plist stay: they're what macOS shows inside its own prompt.
 
 ## Ideas for later
 

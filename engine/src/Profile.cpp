@@ -168,4 +168,39 @@ std::optional<int> parseNoteName (const std::string& text)
     }
 }
 
+
+const InstrumentProfile* guessProfile (const std::string& text, const std::vector<InstrumentProfile>& profiles)
+{
+    auto lower = [] (std::string t) {
+        for (auto& c : t)
+            c = (char) std::tolower ((unsigned char) c);
+        return t;
+    };
+    auto endsWith = [] (const std::string& t, const std::string& end) {
+        return t.size() > end.size() && t.compare (t.size() - end.size(), end.size(), end) == 0;
+    };
+
+    const auto haystack = lower (text);
+    const InstrumentProfile* best = nullptr;
+    size_t bestLength = 0;
+    for (const auto& p : profiles)
+    {
+        if (p.id == "generic")
+            continue;
+        const auto name = lower (p.name);
+        std::vector<std::string> terms { name, lower (p.id) };
+        if (endsWith (name, "es"))
+            terms.push_back (name.substr (0, name.size() - 2)); // basses -> bass
+        if (endsWith (name, "s"))
+            terms.push_back (name.substr (0, name.size() - 1)); // violins -> violin
+        for (const auto& term : terms)
+            if (term.size() > bestLength && haystack.find (term) != std::string::npos)
+            {
+                best = &p;
+                bestLength = term.size();
+            }
+    }
+    return best;
+}
+
 } // namespace vslf

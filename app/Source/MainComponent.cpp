@@ -18,8 +18,12 @@ enum MenuIds : int
     menuAudioSettings,
     menuScanPlugins,
     menuProfilesFolder,
-    menuQuit
+    menuQuit,
+    menuWelcome
 };
+
+// Bump to show the welcome overlay again after its content changes.
+constexpr int welcomeVersion = 1;
 
 juce::String formatTime (double seconds)
 {
@@ -80,6 +84,42 @@ MainComponent::MainComponent (AppContext& a) : app (a)
 
     setSize (1320, 820);
     startTimerHz (15);
+
+    if (app.properties.getUserSettings()->getIntValue ("welcomeShown") < welcomeVersion)
+        showWelcome();
+}
+
+void MainComponent::showWelcome()
+{
+    if (welcome != nullptr)
+        return;
+    const bool installed = app.isSynchronInstalled();
+    if (! installed)
+        app.synchronMissingExplained();
+    welcome = std::make_unique<WelcomeOverlay> (installed);
+    welcome->onDismiss = [this] {
+        // Deferred: this is called from the overlay's own button.
+        juce::Component::SafePointer<MainComponent> safe (this);
+        juce::MessageManager::callAsync ([safe] {
+            if (safe != nullptr)
+                safe->dismissWelcome();
+        });
+    };
+    addAndMakeVisible (*welcome);
+    welcome->setBounds (getLocalBounds());
+    juce::Component::SafePointer<WelcomeOverlay> overlay (welcome.get());
+    juce::MessageManager::callAsync ([overlay] {
+        if (overlay != nullptr && overlay->isShowing())
+            overlay->grabKeyboardFocus();
+    });
+}
+
+void MainComponent::dismissWelcome()
+{
+    welcome.reset();
+    app.properties.getUserSettings()->setValue ("welcomeShown", welcomeVersion);
+    app.properties.saveIfNeeded();
+    grabKeyboardFocus();
 }
 
 MainComponent::~MainComponent()
@@ -133,6 +173,9 @@ void MainComponent::resized()
     trackList.setBounds (r.removeFromTop (juce::jmin (trackList.preferredHeight(), r.getHeight() / 3)));
     dynamicsBar.setBounds (r.removeFromTop (40));
     pianoRoll.setBounds (r);
+
+    if (welcome != nullptr)
+        welcome->setBounds (getLocalBounds());
 }
 
 bool MainComponent::keyPressed (const juce::KeyPress& key)
@@ -219,7 +262,10 @@ void MainComponent::openFiles (const juce::StringArray& paths, int trackIndex)
         if (! app.loadMidi (*t, f, error))
             errors.add (f.getFileName() + ": " + error);
         else
+        {
             app.session.select (app.session.indexOf (t));
+            app.loadDefaultInstrument (*t);
+        }
     }
 
     if (! errors.isEmpty())
@@ -347,7 +393,7 @@ void MainComponent::showError (const juce::String& title, const juce::String& me
 
 // --- Menus -------------------------------------------------------------------------
 
-juce::StringArray MainComponent::getMenuBarNames() { return { "File", "Audio" }; }
+juce::StringArray MainComponent::getMenuBarNames() { return { "File", "Audio", "Help" }; }
 
 juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
 {
@@ -375,6 +421,10 @@ juce::PopupMenu MainComponent::getMenuForIndex (int index, const juce::String&)
         m.addItem (menuScanPlugins, "Scan for Plug-ins...");
        #endif
     }
+    else if (index == 2)
+    {
+        m.addItem (menuWelcome, "Welcome and Permissions...");
+    }
     return m;
 }
 
@@ -396,6 +446,7 @@ void MainComponent::menuItemSelected (int id, int)
             app.profiles.folder().createDirectory();
             app.profiles.folder().revealToUser();
             break;
+        case menuWelcome:        showWelcome(); break;
         case menuQuit:
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
             break;

@@ -2,8 +2,10 @@
 
 #include <JsonIO.h>
 #include <MidiIO.h>
+#include <SynchronState.h>
 
 #include <algorithm>
+#include <utility>
 
 // ---------------------------------------------------------------------------
 class AppContext::PluginWindow : public juce::DocumentWindow
@@ -65,10 +67,12 @@ AppContext::AppContext()
     }
 
     knownPlugins.addChangeListener (this);
+    startTimer (1000);
 }
 
 AppContext::~AppContext()
 {
+    stopTimer();
     knownPlugins.removeChangeListener (this);
     engine.stop();
     deviceManager.removeAudioCallback (&engine);
@@ -119,22 +123,9 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
 
     // Guess the instrument from the file or track name if the track still uses the generic profile.
     if (t.profile.id == "generic")
-    {
-        const auto haystack = (file.getFileNameWithoutExtension() + " " + juce::String (t.input.name)).toLowerCase();
-        const vslf::InstrumentProfile* best = nullptr;
-        for (const auto& p : profiles.all())
-        {
-            if (p.id == "generic")
-                continue;
-            const auto name = juce::String (p.name).toLowerCase();
-            const auto singular = name.trimCharactersAtEnd ("s");
-            if (haystack.contains (name) || haystack.contains (singular) || haystack.contains (juce::String (p.id)))
-                if (best == nullptr || p.name.size() > best->name.size()) // prefer "bass clarinet" over "clarinet"
-                    best = &p;
-        }
-        if (best != nullptr)
+        if (const auto* best = vslf::guessProfile ((file.getFileNameWithoutExtension() + " " + juce::String (t.input.name)).toStdString(),
+                                                   profiles.all()))
             t.profile = *best;
-    }
 
     engine.stop();
     session.process (t);
@@ -252,6 +243,11 @@ bool AppContext::isViennaInstrument (const juce::PluginDescription& d)
     return text.contains ("synchron") || text.contains ("vienna") || text.contains ("vsl");
 }
 
+bool AppContext::isSynchronPlayer (const juce::PluginDescription& d)
+{
+    return d.name.containsIgnoreCase ("synchron player");
+}
+
 juce::Array<juce::PluginDescription> AppContext::instrumentPlugins() const
 {
     juce::Array<juce::PluginDescription> result;
@@ -330,6 +326,26 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
 
             if (state.getSize() > 0)
                 instance->setStateInformation (state.getData(), (int) state.getSize());
+            else if (isSynchronPlayer (desc))
+            {
+                // Synchron Player starts in its Flow view. The app is tuned for
+                // the Precision presets, so open it there instead.
+                juce::MemoryBlock fresh;
+                instance->getStateInformation (fresh);
+                if (const auto precision = vslf::io::withPrecisionView (fresh))
+                    instance->setStateInformation (precision->getData(), (int) precision->getSize());
+            }
+
+            // The preset it starts with (none, or the one a session restored)
+            // is taken as already matched: only later changes are followed.
+            juce::String presetPath;
+            if (isSynchronPlayer (desc))
+            {
+                juce::MemoryBlock current;
+                instance->getStateInformation (current);
+                if (const auto preset = vslf::io::synchronPreset (current))
+                    presetPath = preset->path;
+            }
 
             engine.prepare (*instance);
             closePluginWindow (track);
@@ -338,10 +354,107 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
                 track->pluginDescription = desc;
             destroyPlugin (session.swapPlugin (*track, std::move (instance)));
             track->hasPlugin = true;
+            track->synchronPreset = presetPath;
+            if (! isSynchronPlayer (desc))
+                warnOtherInstrument (desc.name);
 
             if (callback)
                 callback ({});
         });
+}
+
+void AppContext::loadDefaultInstrument (Track& t)
+{
+    if (t.hasPlugin || t.audio.plugin != nullptr)
+        return;
+
+    for (const auto& d : instrumentPlugins())
+    {
+        if (isSynchronPlayer (d))
+        {
+            loadPlugin (t, d, [] (juce::String error) {
+                if (error.isNotEmpty())
+                    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                                                            "Couldn't load Synchron Player", error);
+            });
+            return;
+        }
+    }
+
+    warnSynchronMissing();
+}
+
+bool AppContext::isSynchronInstalled() const
+{
+    for (const auto& d : instrumentPlugins())
+        if (isSynchronPlayer (d))
+            return true;
+    return false;
+}
+
+void AppContext::warnSynchronMissing()
+{
+    if (std::exchange (warnedSynchronMissing, true))
+        return;
+    juce::AlertWindow::showMessageBoxAsync (
+        juce::MessageBoxIconType::WarningIcon, "Synchron Player isn't installed",
+        "VSL Finesse was designed to use VSL Synchron Player. Please install it: Vienna Assistant installs it with your "
+        "Vienna libraries.\n\nYou can pick another instrument from the track's instrument button, but other virtual "
+        "instruments may not behave as intended.");
+}
+
+void AppContext::warnOtherInstrument (const juce::String& name)
+{
+    if (std::exchange (warnedOtherInstrument, true))
+        return;
+    juce::AlertWindow::showMessageBoxAsync (
+        juce::MessageBoxIconType::WarningIcon, "Not Synchron Player",
+        "VSL Finesse was designed to use VSL Synchron Player. Other virtual instruments, such as " + name
+            + ", may not behave as intended.");
+}
+
+void AppContext::followSynchronPreset (Track& t)
+{
+    auto* plugin = t.audio.plugin.get();
+    if (plugin == nullptr || ! isSynchronPlayer (t.pluginDescription))
+        return;
+
+    juce::MemoryBlock state;
+    plugin->getStateInformation (state);
+    const auto preset = vslf::io::synchronPreset (state);
+    if (! preset || preset->path == t.synchronPreset)
+        return;
+    t.synchronPreset = preset->path;
+
+    bool changed = false;
+    if (preset->instrument.isNotEmpty())
+        if (const auto* p = vslf::guessProfile (preset->instrument.toStdString(), profiles.all()); p != nullptr && p->id != t.profile.id)
+        {
+            t.profile = *p;
+            changed = true;
+        }
+    if (preset->type && *preset->type != t.settings.presetType)
+    {
+        t.settings.presetType = *preset->type;
+        rememberPresetType (*preset->type);
+        changed = true;
+    }
+    if (changed)
+    {
+        session.process (t);
+        session.sendChangeMessage();
+    }
+}
+
+void AppContext::timerCallback()
+{
+    // Presets are picked in Synchron's window, so only tracks with an open
+    // window are checked.
+    std::vector<Track*> open;
+    for (const auto& [track, window] : pluginWindows)
+        open.push_back (track);
+    for (auto* t : open)
+        followSynchronPreset (*t);
 }
 
 void AppContext::removePlugin (Track& t)
@@ -378,7 +491,11 @@ void AppContext::showPluginWindow (Track& t)
 
     auto* track = &t;
     pluginWindows[&t] = std::make_unique<PluginWindow> (editor, t.name + " - " + plugin->getName(),
-                                                        [this, track] { closePluginWindow (track); });
+                                                        [this, track] {
+                                                            if (session.indexOf (track) >= 0)
+                                                                followSynchronPreset (*track);
+                                                            closePluginWindow (track);
+                                                        });
 }
 
 namespace
