@@ -249,3 +249,63 @@ TEST_CASE ("Synchron Player state: the loaded preset is read from it")
     CHECK (preset->instrument == "Violin I");
     CHECK (io::synchronPreset (fromBase64 (synchronEmptyFlow))->path.isEmpty());
 }
+
+// The articulation tree of the Studio Special Edition trumpet (VelXF - MOD),
+// cut down from Synchron Player 1.1.0's state with Long notes > Marcato
+// selected: just the fields the reader uses.
+namespace
+{
+    const char* trumpetTree = R"({"version":0,"data":{"currentPreset":"Studio Special Editions/22 Trumpets/02 VelXF - MOD/02 Trumpet I (C) - VelXF","custom":{"sampler":{"rootNode":{"title":"","subTitle":"Articulation","switchControl":25,"whiteNoteSwitch":false,"currentNodeIndex":1.0,"nodes":[{"title":"Staccato","patchName":"01 TrC staccato"},{"title":"Long notes","subTitle":"Type","switchControl":37,"whiteNoteSwitch":false,"currentNodeIndex":1.0,"nodes":[{"title":"Sustain","patchName":"04 TrC sustain"},{"title":"Marcato","subTitle":"Attack","switchControl":257,"whiteNoteSwitch":false,"currentNodeIndex":0.97058,"nodes":[{"title":"Sustain","patchName":"04 TrC sustain"},{"title":"Staccato","patchName":"01 TrC staccato"}]}]},{"title":"Legato","subTitle":"Type","switchControl":37,"whiteNoteSwitch":false,"currentNodeIndex":1.0,"nodes":[{"title":"Legato","patchName":"11 TrC legato"},{"title":"Legato-sus","patchName":"12 TrC legato-sus"}]},{"title":"Sforzato","patchName":"06 TrC sfz"},{"title":"Custom","subTitle":"Type","switchControl":37,"whiteNoteSwitch":false,"currentNodeIndex":1.0,"nodes":[{"title":"Custom 1","patchName":""},{"title":"Custom 2","patchName":""},{"title":"Custom 3","patchName":""},{"title":"Custom 4","patchName":""}]}]}}}}})";
+}
+
+TEST_CASE ("Synchron Player state: the articulation tree gives the articulations and their keys")
+{
+    const auto a = io::synchronArticulationsFromJson (juce::JSON::parse (trumpetTree));
+
+    std::vector<std::pair<juce::String, std::vector<int>>> got;
+    for (const auto& c : a.choices)
+        got.push_back ({ c.name(), c.keys });
+
+    // Synchron's C1 is MIDI 24 (Logic's C0). Marcato's Attack level is picked
+    // by velocity, so Marcato is one articulation. Custom has no patches.
+    const std::vector<std::pair<juce::String, std::vector<int>>> expected = {
+        { "Staccato", { 24 } },
+        { "Long notes > Sustain", { 25, 36 } },
+        { "Long notes > Marcato", { 25, 37 } },
+        { "Legato > Legato", { 26, 36 } },
+        { "Legato > Legato-sus", { 26, 37 } },
+        { "Sforzato", { 27 } },
+    };
+    CHECK (got == expected);
+    CHECK (a.currentKeys == std::vector<int> { 25, 37 });
+
+    // The Staccato state differs only in the root's selection.
+    const auto staccato = io::synchronArticulationsFromJson (
+        juce::JSON::parse (juce::String (trumpetTree).replace (R"("switchControl":25,"whiteNoteSwitch":false,"currentNodeIndex":1.0)",
+                                                               R"("switchControl":25,"whiteNoteSwitch":false,"currentNodeIndex":0.0)")));
+    CHECK (staccato.currentKeys == std::vector<int> { 24 });
+}
+
+TEST_CASE ("Synchron Player state: white-key levels skip the black keys, and no tree gives nothing")
+{
+    const auto a = io::synchronArticulationsFromJson (juce::JSON::parse (
+        R"({"data":{"custom":{"sampler":{"rootNode":{"switchControl":25,"whiteNoteSwitch":true,"currentNodeIndex":2,"nodes":[)"
+        R"({"title":"A","patchName":"a"},{"title":"B","patchName":"b"},{"title":"C","patchName":"c"},{"title":"D","patchName":"d"}]}}}}})"));
+    REQUIRE (a.choices.size() == 4);
+    CHECK (a.choices[1].keys == std::vector<int> { 26 });
+    CHECK (a.choices[3].keys == std::vector<int> { 29 });
+    CHECK (a.currentKeys == std::vector<int> { 28 });
+
+    CHECK (io::synchronArticulationsFromJson (juce::JSON::parse (R"({"data":{}})")).choices.empty());
+}
+
+TEST_CASE ("picked articulations round-trip through JSON")
+{
+    std::vector<ArticulationMarking> m = { { 0, 960, { 25, 37 }, "Long notes > Marcato" }, { 960, 1920, { 24 }, "Staccato" } };
+    const auto back = io::articulationMarkingsFromJson (juce::JSON::parse (juce::JSON::toString (io::articulationMarkingsToJson (m))));
+    REQUIRE (back.size() == 2);
+    CHECK (back[0].keys == std::vector<int> { 25, 37 });
+    CHECK (back[0].name == "Long notes > Marcato");
+    CHECK (back[1].start == 960);
+    CHECK (back[1].end == 1920);
+}

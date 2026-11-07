@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <vslf/Engine.h>
+#include <SynchronState.h>
 
 #include "PlaybackSequence.h"
 
@@ -30,6 +31,7 @@ public:
     vslf::InstrumentProfile profile;
     vslf::Settings settings;
     std::vector<vslf::Marking> markings; // pp..ff, crescendos (input ticks)
+    std::vector<vslf::ArticulationMarking> articulationMarkings; // picked articulations (input ticks)
     vslf::Result result;
 
     juce::PluginDescription pluginDescription;
@@ -37,6 +39,11 @@ public:
     // Synchron Player preset last seen on this track. When it changes, the
     // instrument profile and preset folder follow it.
     juce::String synchronPreset;
+    // The articulations the loaded Synchron preset switches by keyswitch, and
+    // the one it was in when the preset was loaded (what the part switches
+    // back to after a picked passage, where the file has no keyswitch).
+    std::vector<vslf::io::SynchronArticulation> synchronArticulations;
+    std::vector<int> articulationStartKeys;
 
     struct Audio
     {

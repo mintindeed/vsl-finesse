@@ -42,6 +42,9 @@ public:
     // nothing is selected. Clearing works the same way.
     void applyMarking (Track&, vslf::Marking);
     void clearMarkings (Track&);
+    // Picked articulations work the same way: the selection, or the whole part.
+    void applyArticulation (Track&, vslf::ArticulationMarking);
+    void clearArticulations (Track&);
     static vslf::Tick partEnd (const Track&);
     void saveDefaultSettings (const vslf::Settings&);
     vslf::Settings defaultSettings();

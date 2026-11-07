@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **Articulation picker:** drag across some bars (or select nothing for the whole part), click **Articulation** in the strip above the notes and pick one by name, e.g. **Long notes > Marcato**. The names come from the preset loaded in Synchron Player. The app writes that articulation's keyswitches just before the passage and switches back afterwards to what was playing before. Keyswitches in your file inside the passage are replaced; the rest stay as written. Picks show in a lane above the dynamics markings (right-click one to remove it), are saved in sessions, and go into the exported MIDI file.
+- The Articulations list names each articulation, e.g. "Long notes > Marcato (C#0 + C#1)", using the Synchron preset's names, and the Report says how many keyswitches were written for picked articulations.
 - A welcome screen the first time the app starts: what the app is built for (Synchron Player), and why macOS asks for each permission (removable volumes, Documents, local network, keystrokes). Open it again from **Help → Welcome and Permissions...**. If Synchron Player isn't installed, it says so.
 - macOS's own permission prompts now say why VSL Finesse is asking.
 - A warning when Synchron Player isn't installed (when a MIDI file is opened) and when you load another instrument: the app was designed for Synchron Player, and other virtual instruments may not behave as intended. Each warning appears once per run.
@@ -19,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - The **Plain** character button is now called **Simple**.
 
 ### Fixed
+- Dynamics markings saved in a session are restored when you open it (they were dropped).
 - A MIDI file named after a longer instrument name, such as "Bass Clarinet.mid", no longer gets the shorter one's profile (Clarinet).
 
 ## [0.4.0] - 2026-11-07

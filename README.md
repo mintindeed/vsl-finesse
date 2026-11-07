@@ -2,7 +2,7 @@
 
 A Mac app that takes a flat MIDI part (one instrument per file) and writes a natural-sounding performance for Vienna Symphonic Library's Studio Special Editions: CC1 dynamics, CC11 expression, velocities and note timing. You can audition the result through Synchron Player inside the app, compare it with the original (A/B), and export a "Finessed" MIDI file to drag back into Logic.
 
-It never adds or changes articulation keyswitches. Keyswitches in your file are kept exactly where they are, and the app shapes the performance to suit whichever articulation is active.
+Keyswitches in your file are kept exactly where they are, and the app shapes the performance to suit whichever articulation is active. If you'd rather choose articulations in the app, pick one by name (e.g. **Long notes > Marcato**) for a passage, and the app writes the keyswitches for it.
 
 ## Getting the app
 
@@ -40,13 +40,14 @@ You can change your answers in System Settings → Privacy & Security.
    The app remembers your last choice for new tracks. Notes written connected always overlap slightly, which triggers legato transitions in legato patches.
 5. **Play** (space bar). **Original / Finessed** (or the T key) switches between the untouched file and the performance, at the same position.
 6. **Shape it with buttons:**
+   - **Articulation** (the strip above the notes): drag across some bars, click **Articulation** and pick one from the menu, e.g. **Long notes > Marcato** or **Staccato**. With nothing selected, it applies to the whole part. The menu lists the articulations of the preset loaded in Synchron Player, with their keyswitches; the app writes those keyswitches just before the first note of the passage, and after the passage switches back to what was playing before (your file's own keyswitches, or the articulation the preset was in when you loaded it). Keyswitches in your file inside a picked passage are replaced; the rest are kept. Picked articulations show in their own lane above the dynamics markings: right-click one to remove it, or use **Remove picked articulations** in the menu. Without Synchron Player, the menu offers the instrument profile's named articulations and the keyswitch combinations in your file.
    - **Dynamics** (the strip above the notes): drag across some bars to select them, then click **pp p mp mf f ff**, **cresc.** or **dim.** With nothing selected, a button applies to the whole part. Hover a button to see what it means. A crescendo or diminuendo grows two dynamic steps and stays there until the next marking. Right-click a marking to remove it, or use **Clear**. Esc or a click drops the selection.
    - **Character** (right panel): **Simple**, **Expressive** or **Very expressive**.
    - **Human pauses** (on by default): breaths in long wind and brass phrases, a moment for the bow to cross strings, and a tiny lift where a phrase ends without a rest. Pauses come out of the end of the earlier note, so the beat never moves.
    - **New variation** re-rolls the small human variation. **Fine-tune...** opens the individual rules behind the buttons, if you ever want them.
 7. **Export Finessed MIDI...** writes `Name (Finessed).mid` next to the original. Drag it into Logic.
 
-**File → Save Session** stores the tracks, settings, dynamics markings, and each plug-in with its loaded preset.
+**File → Save Session** stores the tracks, settings, dynamics markings, picked articulations, and each plug-in with its loaded preset.
 
 ## How it performs
 
@@ -83,7 +84,7 @@ The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pau
 
 | Step | What happens |
 |---|---|
-| Clean up | Keyswitches are set aside untouched. Existing CCs are removed. Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
+| Clean up | Keyswitches are set aside untouched, except in passages where you picked an articulation: there the app writes the picked articulation's keyswitches and switches back afterwards. Existing CCs are removed. Chords keep their top note, and overlapping notes are trimmed, since a part should be one line. |
 | Phrases | Rests, long notes and (for winds/brass) breath length split the line into phrases. Each phrase gets a peak, chosen from its high and long notes. |
 | Dynamics | Your markings (pp-ff, cresc., dim.) or the file's velocities set the base level. Phrase arch, high loud and duration contrast shape it into one smooth CC1 line through the whole part. |
 | Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus beat stress and a little variation. Otherwise left as written. |
@@ -111,14 +112,16 @@ Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON 
   "name": "Violins",
   "family": "strings",
   "range": ["G2", "G6"],
-  "keys": [ { "note": "C1", "level": 0 }, { "note": "C#2", "level": 1 } ],
+  "keys": [ { "note": "C0", "level": 0 }, { "note": "C#1", "level": 1 } ],
   "articulations": [
-    { "keys": ["C1", "C#2"], "name": "Long notes - Marcato" }
+    { "keys": ["C#0", "C#1"], "name": "Long notes - Marcato" }
   ]
 }
 ```
 
-Synchron presets switch articulations with one key per level of the articulation tree: by default each octave is one level (C1-B1 picks the articulation, C2-B2 the type), and the current articulation is the combination of the latest key on each level. `level` overrides that for a key.
+Synchron presets switch articulations with one key per level of the articulation tree: by default each octave is one level (in the Special Editions, C0-B0 picks the articulation and C1-B1 the type), and the current articulation is the combination of the latest key on each level. `level` overrides that for a key.
+
+Synchron Player names notes an octave higher than Logic, because it calls middle C "C4" (Logic calls it C3; you can change this in Synchron's settings). So the key Synchron shows as **C1** is **C0** in Logic and in VSL Finesse; it's the same MIDI note (24).
 
 ## Signed builds
 

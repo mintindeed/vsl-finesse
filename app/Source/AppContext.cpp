@@ -114,7 +114,10 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
     }
 
     if (t.midiFile != file)
+    {
         t.markings.clear();
+        t.articulationMarkings.clear();
+    }
     t.midiFile = file;
     t.input = std::move (read.part);
     t.readWarnings = std::move (read.warnings);
@@ -195,6 +198,33 @@ void AppContext::clearMarkings (Track& t)
         vslf::clearMarkings (t.markings, session.selectionStart, session.selectionEnd);
     else
         t.markings.clear();
+    session.process (t);
+}
+
+void AppContext::applyArticulation (Track& t, vslf::ArticulationMarking m)
+{
+    if (! t.hasMidi)
+        return;
+    if (session.hasSelection() && session.selectedTrack() == &t)
+    {
+        m.start = session.selectionStart;
+        m.end = session.selectionEnd;
+    }
+    else
+    {
+        m.start = 0;
+        m.end = partEnd (t);
+    }
+    vslf::addArticulationMarking (t.articulationMarkings, m);
+    session.process (t);
+}
+
+void AppContext::clearArticulations (Track& t)
+{
+    if (session.hasSelection() && session.selectedTrack() == &t)
+        vslf::clearArticulationMarkings (t.articulationMarkings, session.selectionStart, session.selectionEnd);
+    else
+        t.articulationMarkings.clear();
     session.process (t);
 }
 
@@ -339,12 +369,14 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
             // The preset it starts with (none, or the one a session restored)
             // is taken as already matched: only later changes are followed.
             juce::String presetPath;
+            std::optional<vslf::io::SynchronArticulations> tree;
             if (isSynchronPlayer (desc))
             {
                 juce::MemoryBlock current;
                 instance->getStateInformation (current);
                 if (const auto preset = vslf::io::synchronPreset (current))
                     presetPath = preset->path;
+                tree = vslf::io::synchronArticulations (current);
             }
 
             engine.prepare (*instance);
@@ -354,7 +386,13 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
                 track->pluginDescription = desc;
             destroyPlugin (session.swapPlugin (*track, std::move (instance)));
             track->hasPlugin = true;
+            // A session restores its own start articulation for the same
+            // preset: the state may hold whatever was played last.
+            if (presetPath != track->synchronPreset || ! tree)
+                track->articulationStartKeys = tree ? tree->currentKeys : std::vector<int> {};
             track->synchronPreset = presetPath;
+            track->synchronArticulations = tree ? tree->choices : std::vector<vslf::io::SynchronArticulation> {};
+            session.process (*track);
             if (! isSynchronPlayer (desc))
                 warnOtherInstrument (desc.name);
 
@@ -413,6 +451,16 @@ void AppContext::warnOtherInstrument (const juce::String& name)
             + ", may not behave as intended.");
 }
 
+namespace
+{
+bool sameArticulations (const std::vector<vslf::io::SynchronArticulation>& a, const std::vector<vslf::io::SynchronArticulation>& b)
+{
+    return std::equal (a.begin(), a.end(), b.begin(), b.end(), [] (const auto& x, const auto& y) {
+        return x.path == y.path && x.keys == y.keys;
+    });
+}
+} // namespace
+
 void AppContext::followSynchronPreset (Track& t)
 {
     auto* plugin = t.audio.plugin.get();
@@ -422,11 +470,36 @@ void AppContext::followSynchronPreset (Track& t)
     juce::MemoryBlock state;
     plugin->getStateInformation (state);
     const auto preset = vslf::io::synchronPreset (state);
-    if (! preset || preset->path == t.synchronPreset)
+    if (! preset)
         return;
+
+    // The articulation tree can change without a new preset (keyswitches
+    // edited in Synchron). Its selection changes whenever a keyswitch plays,
+    // so that's only taken when a preset is loaded.
+    const auto tree = vslf::io::synchronArticulations (state);
+    const bool newPreset = preset->path != t.synchronPreset;
+    bool changed = false;
+    if (tree && ! sameArticulations (tree->choices, t.synchronArticulations))
+    {
+        t.synchronArticulations = tree->choices;
+        changed = true;
+    }
+    if (tree && newPreset)
+    {
+        t.articulationStartKeys = tree->currentKeys;
+        changed = true;
+    }
+    if (! newPreset)
+    {
+        if (changed)
+        {
+            session.process (t);
+            session.sendChangeMessage();
+        }
+        return;
+    }
     t.synchronPreset = preset->path;
 
-    bool changed = false;
     if (preset->instrument.isNotEmpty())
         if (const auto* p = vslf::guessProfile (preset->instrument.toStdString(), profiles.all()); p != nullptr && p->id != t.profile.id)
         {
@@ -462,6 +535,8 @@ void AppContext::removePlugin (Track& t)
     closePluginWindow (&t);
     destroyPlugin (session.swapPlugin (t, nullptr));
     t.hasPlugin = false;
+    t.synchronArticulations.clear();
+    session.process (t);
 }
 
 void AppContext::destroyPlugin (std::unique_ptr<juce::AudioPluginInstance> plugin)
@@ -633,6 +708,13 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
         x->setAttribute ("gain", (double) t->audio.gain);
         x->createNewChildElement ("Settings")->addTextElement (juce::JSON::toString (vslf::io::settingsToJson (t->settings), true));
         x->createNewChildElement ("Markings")->addTextElement (juce::JSON::toString (vslf::io::markingsToJson (t->markings), true));
+        x->createNewChildElement ("Articulations")->addTextElement (
+            juce::JSON::toString (vslf::io::articulationMarkingsToJson (t->articulationMarkings), true));
+        x->setAttribute ("synchronPreset", t->synchronPreset);
+        juce::StringArray startKeys;
+        for (int k : t->articulationStartKeys)
+            startKeys.add (juce::String (k));
+        x->setAttribute ("articulationStartKeys", startKeys.joinIntoString (" "));
 
         if (t->hasPlugin && t->audio.plugin != nullptr)
         {
@@ -692,12 +774,19 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
             vslf::io::settingsFromJson (juce::JSON::parse (sx->getAllSubText()), t.settings);
         if (auto* mx = x->getChildByName ("Markings"))
             t.markings = vslf::io::markingsFromJson (juce::JSON::parse (mx->getAllSubText()));
+        if (auto* ax = x->getChildByName ("Articulations"))
+            t.articulationMarkings = vslf::io::articulationMarkingsFromJson (juce::JSON::parse (ax->getAllSubText()));
+        t.synchronPreset = x->getStringAttribute ("synchronPreset");
+        for (const auto& k : juce::StringArray::fromTokens (x->getStringAttribute ("articulationStartKeys"), " ", ""))
+            if (k.isNotEmpty())
+                t.articulationStartKeys.push_back (k.getIntValue());
 
         const juce::File midi (x->getStringAttribute ("midi"));
         if (midi.existsAsFile())
         {
             const auto profile = t.profile;
             juce::String error;
+            t.midiFile = midi; // the same file: its markings stay
             if (! loadMidi (t, midi, error))
                 errors->add (error);
             if (t.profile.id != profile.id) // keep the saved instrument, not the guessed one

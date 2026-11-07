@@ -92,7 +92,32 @@ void Session::process (Track& t)
     if (! t.hasMidi)
         return;
 
-    t.result = vslf::finesse (t.input, t.profile, t.settings, t.markings);
+    // The preset's and the picks' articulation names, for key combinations
+    // the profile doesn't name.
+    auto profile = t.profile;
+    std::vector<std::pair<std::string, std::vector<int>>> names;
+    for (const auto& a : t.synchronArticulations)
+        names.push_back ({ a.name().toStdString(), a.keys });
+    for (const auto& m : t.articulationMarkings)
+        names.push_back ({ m.name, m.keys });
+    for (const auto& [name, picked] : names)
+    {
+        auto keys = picked;
+        std::sort (keys.begin(), keys.end());
+        const bool named = std::any_of (profile.articulations.begin(), profile.articulations.end(),
+                                        [&] (const vslf::ArticulationMapping& m) {
+                                            auto k = m.keys;
+                                            std::sort (k.begin(), k.end());
+                                            return k == keys;
+                                        });
+        if (! named)
+            profile.articulations.push_back ({ keys, { name, 0.0 } });
+    }
+
+    vslf::ArticulationPicks picks;
+    picks.markings = t.articulationMarkings;
+    picks.startKeys = t.articulationStartKeys;
+    t.result = vslf::finesse (t.input, profile, t.settings, t.markings, picks);
 
     auto original = PlaybackSequence::build (t.input, t.profile, t.flatDynamics());
     auto finessed = PlaybackSequence::build (t.result.part, t.profile, t.flatDynamics());

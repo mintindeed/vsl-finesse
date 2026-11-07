@@ -6,7 +6,8 @@
 
 // Read-only view of the selected track: finessed notes (coloured by
 // articulation, brightness = velocity), the original notes as outlines,
-// phrases, keyswitches, markings, and the CC1 / CC11 curves. Drag across bars
+// phrases, keyswitches, picked articulations, dynamics markings, and the
+// CC1 / CC11 curves. Drag across bars
 // to select a passage; click (or drag in the bar ruler) to move the play
 // position; scroll to move, pinch or Cmd/Ctrl+scroll to zoom.
 class PianoRollView : public juce::Component,
@@ -30,10 +31,13 @@ private:
     void timerCallback() override;
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
 
-    static constexpr int headerHeight = 58;
+    static constexpr int headerHeight = 78;
     juce::Rectangle<int> headerArea() const;
+    juce::Rectangle<int> articulationsArea() const;
     juce::Rectangle<int> markingsArea() const;
     int markingAt (const Track&, juce::Point<int>) const;
+    int articulationAt (const Track&, juce::Point<int>) const;
+    void drawArticulations (juce::Graphics&, const Track&);
     void drawSelection (juce::Graphics&, const Track&);
     void drawMarkings (juce::Graphics&, const Track&);
     juce::Rectangle<int> notesArea() const;

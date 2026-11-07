@@ -427,3 +427,130 @@ TEST_CASE ("guessProfile finds the instrument a name refers to, preferring the l
     CHECK (id ("Piano") == "none");
     CHECK (id ("Generic") == "none");
 }
+
+// --- Picked articulations ----------------------------------------------------
+// Keys as in the Studio Special Edition trumpet: C0..E0 (MIDI 24..28) pick the
+// articulation (Staccato, Long notes, ...), C1/C#1 (36/37) the type
+// (Sustain, Marcato).
+namespace
+{
+std::vector<int> keyswitchPitchesAt (const Result& r, Tick from, Tick to)
+{
+    std::vector<int> v;
+    for (const auto& k : r.part.keyswitches)
+        if (k.start >= from && k.start < to)
+            v.push_back (k.pitch);
+    std::sort (v.begin(), v.end());
+    return v;
+}
+
+ArticulationMarking pick (Tick start, Tick end, std::vector<int> keys, std::string name)
+{
+    return ArticulationMarking { start, end, std::move (keys), std::move (name) };
+}
+} // namespace
+
+TEST_CASE ("a picked articulation writes its keyswitches ahead of its first note")
+{
+    auto notes = line (8, 480);
+    ArticulationPicks picks;
+    picks.markings = { pick (0, 8 * 480, { 25, 37 }, "Long notes > Marcato") };
+    const auto r = finesse (makePart (notes), violinProfile(), Settings {}, {}, picks);
+    REQUIRE_FALSE (r.part.notes.empty());
+
+    REQUIRE (r.part.keyswitches.size() == 2);
+    CHECK (r.report.keyswitchesWritten == 2);
+    // At tick 0 they can't move earlier; the writer orders keyswitches first.
+    for (const auto& k : r.part.keyswitches)
+        CHECK (k.start <= r.part.notes[0].start);
+    CHECK (r.articulationKeys[(size_t) r.articulationIndex[7]] == std::vector<int> { 25, 37 });
+}
+
+TEST_CASE ("after a picked passage the part switches back to the file's articulation")
+{
+    auto notes = line (12, 480);
+    std::vector<Note> ks = { note (0, 30, 25), note (0, 30, 36) }; // Long notes > Sustain
+    ArticulationPicks picks;
+    picks.markings = { pick (4 * 480, 8 * 480, { 24 }, "Staccato") }; // notes 4-7
+    const auto r = finesse (makePart (notes, ks), violinProfile(), Settings {}, {}, picks);
+
+    auto keysOf = [&r] (size_t i) { return r.articulationKeys[(size_t) r.articulationIndex[i]]; };
+    CHECK (keysOf (0) == std::vector<int> { 25, 36 });
+    CHECK (keysOf (5) == std::vector<int> { 24, 36 }); // Staccato: the type level has no say
+    CHECK (keysOf (8) == std::vector<int> { 25, 36 });
+    // Only the articulation level is switched, and switched back.
+    CHECK (keyswitchPitchesAt (r, 4 * 480 - 240, 4 * 480 + 1) == std::vector<int> { 24 });
+    CHECK (keyswitchPitchesAt (r, 8 * 480 - 240, 8 * 480 + 1) == std::vector<int> { 25 });
+    CHECK (r.report.keyswitchesWritten == 2);
+}
+
+TEST_CASE ("file keyswitches inside a picked passage are replaced, the rest are kept")
+{
+    auto notes = line (12, 480);
+    std::vector<Note> ks = { note (0, 30, 25), note (0, 30, 36), note (6 * 480 - 10, 30, 26) };
+    ArticulationPicks picks;
+    picks.markings = { pick (4 * 480, 8 * 480, { 24 }, "Staccato") };
+    const auto r = finesse (makePart (notes, ks), violinProfile(), Settings {}, {}, picks);
+
+    CHECK (r.report.keyswitchesReplaced == 1);
+    CHECK (keyswitchPitchesAt (r, 4 * 480 + 1, 8 * 480 - 240).empty());
+    // The file had switched to D0 (26) inside the passage, so that's what follows it.
+    CHECK (keyswitchPitchesAt (r, 8 * 480 - 240, 8 * 480 + 1) == std::vector<int> { 26 });
+    CHECK (keyswitchPitchesAt (r, -1000, 1) == std::vector<int> { 25, 36 });
+}
+
+TEST_CASE ("without file keyswitches, a pick switches back to the player's start articulation")
+{
+    auto notes = line (12, 480);
+    ArticulationPicks picks;
+    picks.markings = { pick (4 * 480, 8 * 480, { 24 }, "Staccato") };
+    picks.startKeys = { 25, 37 };
+    const auto r = finesse (makePart (notes), violinProfile(), Settings {}, {}, picks);
+
+    // The start articulation is set at the first note so playback is the same every time.
+    CHECK (keyswitchPitchesAt (r, -1000, 1) == std::vector<int> { 25 });
+    CHECK (keyswitchPitchesAt (r, 4 * 480 - 240, 4 * 480 + 1) == std::vector<int> { 24 });
+    CHECK (keyswitchPitchesAt (r, 8 * 480 - 240, 8 * 480 + 1) == std::vector<int> { 25 });
+
+    // Without a known start articulation the pick simply carries on.
+    picks.startKeys.clear();
+    const auto r2 = finesse (makePart (notes), violinProfile(), Settings {}, {}, picks);
+    CHECK (r2.part.keyswitches.size() == 1);
+}
+
+TEST_CASE ("back-to-back picks only write the keys that change")
+{
+    auto notes = line (12, 480);
+    ArticulationPicks picks;
+    picks.markings = { pick (0, 4 * 480, { 25, 36 }, "Long notes > Sustain"),
+                       pick (4 * 480, 12 * 480, { 25, 37 }, "Long notes > Marcato") };
+    const auto r = finesse (makePart (notes), violinProfile(), Settings {}, {}, picks);
+    CHECK (keyswitchPitchesAt (r, 4 * 480 - 240, 4 * 480 + 1) == std::vector<int> { 37 });
+    CHECK (r.report.keyswitchesWritten == 3);
+}
+
+TEST_CASE ("no picks: keyswitches are kept exactly as written")
+{
+    auto notes = line (8, 480);
+    std::vector<Note> ks = { note (0, 30, 25), note (1920, 30, 24) };
+    const auto r = finesse (makePart (notes, ks), violinProfile(), Settings {}, {}, ArticulationPicks {});
+    CHECK (r.part.keyswitches.size() == 2);
+    CHECK (r.report.keyswitchesWritten == 0);
+}
+
+TEST_CASE ("a new pick replaces the part of an old one it covers")
+{
+    std::vector<ArticulationMarking> m;
+    addArticulationMarking (m, pick (0, 1000, { 24 }, "Staccato"));
+    addArticulationMarking (m, pick (400, 600, { 25, 37 }, "Long notes > Marcato"));
+    REQUIRE (m.size() == 3);
+    CHECK (m[0].end == 400);
+    CHECK (m[1].name == "Long notes > Marcato");
+    CHECK (m[2].start == 600);
+    CHECK (m[2].name == "Staccato");
+
+    clearArticulationMarkings (m, 450, 500);
+    CHECK (m.size() == 2);
+    addArticulationMarking (m, pick (0, 0, { 24 }, "empty")); // ignored
+    CHECK (m.size() == 2);
+}

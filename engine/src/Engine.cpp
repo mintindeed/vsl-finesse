@@ -76,7 +76,6 @@ void assignArticulations (Context& ctx)
     const auto& profile = ctx.profile;
     ctx.articulations.clear();
     ctx.articulationKeys.clear();
-    ctx.report.keyswitchesIn = (int) part.keyswitches.size();
 
     std::map<std::vector<int>, int> indexForCombination;
     auto indexFor = [&] (const std::vector<int>& combo) {
@@ -193,7 +192,7 @@ double dynamicValue (int level)
 }
 
 Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings,
-                const std::vector<Marking>& markings)
+                const std::vector<Marking>& markings, const ArticulationPicks& picks)
 {
     detail::Context ctx { profile, settings, {}, {}, {}, {}, {}, {}, {} };
     ctx.part = ingest (input, profile, settings, ctx.report);
@@ -203,6 +202,8 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
             ctx.markings.push_back ({ m.kind, input.tempo.secondsAt ((double) m.start),
                                       input.tempo.secondsAt ((double) m.end), m.level });
 
+    ctx.report.keyswitchesIn = (int) ctx.part.keyswitches.size();
+    detail::applyArticulationPicks (ctx, picks);
     detail::assignArticulations (ctx);
 
     if (! ctx.part.notes.empty())

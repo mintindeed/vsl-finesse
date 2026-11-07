@@ -1,5 +1,6 @@
 add_library (vslf_engine STATIC
     src/Analysis.cpp
+    src/Articulations.cpp
     src/Controllers.cpp
     src/Dynamics.cpp
     src/Engine.cpp

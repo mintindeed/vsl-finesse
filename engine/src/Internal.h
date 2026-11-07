@@ -97,6 +97,7 @@ double noise (uint32_t seed, uint64_t a, uint64_t b);
 double clamp01 (double v);
 double smoothstep (double x);
 
+void applyArticulationPicks (Context&, const ArticulationPicks&);
 void assignArticulations (Context&);
 void analyze (Context&);
 void shapeDynamics (Context&);

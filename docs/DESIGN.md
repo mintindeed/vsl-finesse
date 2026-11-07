@@ -4,7 +4,7 @@
 
 - **Offline, not a MIDI FX plug-in.** A plug-in in Logic's MIDI FX slot only sees each note as it plays: no note lengths, no next note, no phrase shape. An offline tool sees the whole part, and its output is ordinary, editable CC data in Logic.
 - **One instrument per MIDI file.** Notes sounding at once are treated as mistakes: chords keep their top note (configurable), and overlaps are trimmed. Small, deliberate overlaps between connected notes are added back afterwards.
-- **Keyswitches are never written.** Notes outside the instrument's range (or listed in the profile's `keys`) are keyswitches. They're preserved; the only change is moving one a few milliseconds earlier when timing humanization would otherwise put its note first.
+- **Keyswitches are only written for picked articulations.** Notes outside the instrument's range (or listed in the profile's `keys`) are keyswitches. They're preserved; the only change is moving one a few milliseconds earlier when timing humanization would otherwise put its note first. The exception is a passage where the user picked an articulation (see below).
 - **Existing CCs are wiped**, except controllers listed in the profile's `preservedControllers`.
 - **The Synchron preset folder decides the strategy.** It's one choice per track:
 
@@ -23,7 +23,7 @@
 ## Engine pipeline (`engine/src`)
 
 1. `Ingest.cpp`: separate keyswitches, wipe CCs, resolve chords and overlaps.
-2. `Engine.cpp`: assign each note the articulation from the latest key on each keyswitch level.
+2. `Articulations.cpp`: rewrite keyswitches for picked articulations (nothing happens without picks). Then `Engine.cpp`: assign each note the articulation from the latest key on each keyswitch level.
 3. `Analysis.cpp`: seconds via the tempo map, metric weight from the time signature, phrase boundaries (rests ≥ max(0.3 s, ¾ beat); long notes followed by shorter ones; breath limit for winds/brass; 12 s general limit), phrase peaks (pitch, length, position, metre).
 4. `Dynamics.cpp`: per-note level = base (input velocity or a fixed level) + phrase arch + high-loud + duration contrast; velocity = level + metric accent + humanization; swell and taper amounts.
 5. `Timing.cpp`: humanized onsets and per-articulation attack offsets; legato overlaps (not between repeated pitches, not across real rests); repeated-note gaps; breaths; keyswitch fix-up.
@@ -36,18 +36,7 @@
 - `PlaybackSequence`: an immutable, time-sorted event list built from a part.
 - Multitrack is already in the data model and audio engine; the UI shows one row per track.
 
-## Next up
-
-### Articulation picker (by name)
-
-Goal: pick an articulation such as "Long notes > Marcato" by name over a selected passage (or the whole part), and have the app write the right keyswitches. Ideally the app reads the articulation tree from the Synchron Player preset that's loaded, instead of the user typing anything.
-
-What we know from the Studio Special Edition trumpet preset (Synchron Player screenshot):
-- The tree has levels. **Articulation** (C1 Staccato, C#1 Long notes, D1 Legato, D#1 Sforzato, E1 Custom), then **Type** (C2 Sustain, C#2 Marcato), then **Attack** (Sustain/Staccato), which is picked by a controller or by velocity (threshold 76 in that preset), not by a key.
-- One octave per level is already the engine's default (C1 + C#2 = one articulation).
-- Keyswitch names here use Synchron's/Logic's convention (C3 = middle C).
-
-Waiting on: two files from "Save instrument details to Desktop" (instrument menu on the track), one with Long notes > Marcato selected in Synchron and one with Staccato. Compare them to find where Synchron stores the tree and the current selection (state blob, parameters or program names). If the tree is readable, parse it; if not, fall back to a picker built from the keys used in the file plus names the user types once per instrument profile.
+## Synchron Player
 
 **Synchron Player's state is readable** (found from two "Save instrument details" dumps, Synchron Player AU 1.1.0, November 2026):
 - The AU state is a binary plist. Its `PluginState` entry is a Zstandard frame (`28 b5 2f fd`) holding plain JSON: `{"version": 0, "data": {...}}`. (The `data` entry next to it is the AU parameter dump.)
@@ -64,7 +53,28 @@ JUCE has no Zstandard, so the app builds the zstd library (BSD licence) from sou
 
 **Following the loaded preset.** The instrument profile and preset folder follow `currentPreset`. Its last part names the instrument (`01 Violin I - VelXF` → "Violin I", matched to a profile with `guessProfile`, longest match wins), and the numbered folder above it is the preset folder (`02 VelXF - MOD`). Synchron doesn't reliably tell the host when it loads a preset, so the app reads the state once a second for tracks whose Synchron window is open (presets are only picked there) and once when the window closes. Each track remembers the last preset path it saw; only a new path changes anything, so a profile picked by hand isn't overruled until another preset is loaded. The preset a plug-in starts with (none, or the session's) counts as seen.
 
-The picker should follow the dynamics buttons' model: drag across bars to select, then choose; with no selection it applies to the whole part. Keyswitches it writes must still land just before the notes they switch.
+### Articulation picker
+
+Pick an articulation such as "Long notes > Marcato" by name over a selected passage (or the whole part), and the app writes its keyswitches. The names and keys come from the Synchron preset that's loaded.
+
+**Where Synchron keeps the tree** (two "Save instrument details" dumps of the Studio Special Edition Trumpet I (C), VelXF - MOD, one with Long notes > Marcato selected and one with Staccato; the decompressed states differ only in the root's `currentNodeIndex`, 1 vs 0):
+- `data.custom.sampler.rootNode` is the tree. A node with children (`nodes`) is a level: `subTitle` names it (Articulation, Type, Attack), `switchControl` says what picks the child, `whiteNoteSwitch` makes the children use white keys only, and `currentNodeIndex` is the selected child (a fraction on a crossfaded level, e.g. 0.97 for the Attack, which follows velocity). A node without children plays a patch (`patchName`, `patchEntry`); the Custom slots have an empty `patchName` and are skipped.
+- `switchControl`: 0 is nothing, 1-128 a keyswitch (MIDI note + 1, the first child's key), then the 128 controllers, then velocity (257, matching `paramControl.mappings.nodeXFade0: velocity`). Only key-switched levels are walked: a node below which no key picks anything is one articulation (Marcato, whose Attack level follows velocity).
+- The trumpet: root `switchControl` 25 (MIDI 24: Staccato, 25 Long notes, 26 Legato, 27 Sforzato, 28 Custom), Long notes and Legato 37 (MIDI 36 Sustain/Legato, 37 Marcato/Legato-sus). So "Long notes > Marcato" is MIDI 25 + 37.
+- **Note names.** Synchron calls middle C "C4" by default, Logic "C3" (the engine uses Logic's). So Synchron's C1 (what its screenshot shows for Staccato) is MIDI 24, Logic's C0. The earlier note here that Synchron uses C3 = middle C was wrong. One octave per level still holds (24-35 articulation, 36-47 type).
+
+`io/SynchronState.cpp` (`synchronArticulations`) turns the tree into a list of choices (path + one key per level) and the current selection's keys.
+
+**What the engine does with picks** (`engine/src/Articulations.cpp`, `ArticulationPicks`): for every note it works out the key it wants on each level. Inside a pick, the pick's keys; elsewhere, what the file's own keyswitches have selected by then, or the player's start articulation on levels the file never switched (only the levels picks touch are considered). A key is written at a note wherever what the player has received so far differs. The file's keyswitches governing picked notes are dropped and the rest kept as written. The timing fix-up then moves every keyswitch ahead of its (humanized) note as before. Consequences:
+- Staccato after Marcato only writes C0: the Type level (C#1) stays, and Synchron ignores it under Staccato.
+- After a pick the part switches back, so a pick only affects its passage. Without file keyswitches or a known start articulation the pick carries on to the end, since there's nothing known to switch back to.
+- With picks, the start articulation is written at the first note when it isn't picked, so playback from the top doesn't depend on what Synchron last played.
+
+**The start articulation** is Synchron's selection when the preset is loaded (`currentNodeIndex` along the key-switched levels). It's only taken when the preset changes: the selection changes whenever a keyswitch plays, so reading it during playback would make the result drift. Sessions save it (with the preset path), since a saved state holds whatever was played last.
+
+The picker follows the dynamics buttons' model: drag across bars to select, then pick from the **Articulation** menu; with no selection it applies to the whole part. A new pick replaces the part of an older one it covers. Without a Synchron tree (another instrument, or no preset yet), the menu offers the profile's named articulations and the key combinations in the file. The picked names also name those key combinations in the Articulations legend.
+
+## Next up
 
 ### Smarter breaths
 

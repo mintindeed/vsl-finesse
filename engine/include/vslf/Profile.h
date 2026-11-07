@@ -26,8 +26,8 @@ struct Articulation
 };
 
 // A keyswitch pitch and the level of the player's articulation tree it
-// belongs to. Synchron presets use one octave per level (e.g. C1-E1 pick the
-// articulation, C2-C#2 the type), so the current articulation is the
+// belongs to. Synchron presets use one octave per level (e.g. C0-E0 pick the
+// articulation, C1-C#1 the type, in Logic's naming), so the current articulation is the
 // combination of the latest key on each level. Keys not listed here get
 // their octave as their level.
 struct KeyswitchKey

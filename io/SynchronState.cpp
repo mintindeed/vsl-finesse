@@ -335,4 +335,119 @@ std::optional<SynchronPreset> synchronPreset (const juce::MemoryBlock& state)
         return std::nullopt;
     return describeSynchronPreset (parsed["data"]["currentPreset"].toString());
 }
+
+// --- Articulation tree --------------------------------------------------------
+// Each node of the tree has a title and either children (`nodes`) or a patch.
+// A node with children is a level of the tree: its `switchControl` says what
+// picks the child. 0 is nothing, 1-128 a keyswitch (note + 1, the first child's
+// key; with `whiteNoteSwitch` the children use white keys only), then the 128
+// controllers, then velocity and other sources (the Marcato node's Attack
+// level is 257: velocity picks the sustain or staccato attack).
+// `currentNodeIndex` is the child that's selected. Only key-switched levels
+// are walked: a node below which no key picks anything is one articulation.
+namespace
+{
+    constexpr int switchNoteFirst = 1, switchNoteLast = 128;
+
+    bool hasPatch (const juce::var& node)
+    {
+        if (node["nodes"].size() > 0)
+        {
+            for (const auto& child : *node["nodes"].getArray())
+                if (hasPatch (child))
+                    return true;
+            return false;
+        }
+        return node["patchName"].toString().isNotEmpty() || node["patchEntry"].isString();
+    }
+
+    std::optional<int> firstKey (const juce::var& node)
+    {
+        if (! node["nodes"].isArray() || node["nodes"].size() == 0)
+            return std::nullopt;
+        const int control = (int) node["switchControl"];
+        if (control < switchNoteFirst || control > switchNoteLast)
+            return std::nullopt;
+        return control - switchNoteFirst;
+    }
+
+    // The key for child `index` of a level whose first key is `first`.
+    int keyFor (const juce::var& node, int first, int index)
+    {
+        if (! (bool) node["whiteNoteSwitch"])
+            return first + index;
+        auto isWhite = [] (int pitch) {
+            const int pc = ((pitch % 12) + 12) % 12;
+            return pc == 0 || pc == 2 || pc == 4 || pc == 5 || pc == 7 || pc == 9 || pc == 11;
+        };
+        int key = first;
+        while (! isWhite (key))
+            ++key;
+        for (int i = 0; i < index; ++i)
+            do
+                ++key;
+            while (! isWhite (key));
+        return key;
+    }
+
+    void collect (const juce::var& node, juce::StringArray path, std::vector<int> keys,
+                  std::vector<SynchronArticulation>& out)
+    {
+        const auto first = firstKey (node);
+        if (! first)
+        {
+            if (! path.isEmpty() && hasPatch (node))
+                out.push_back ({ path, keys });
+            return;
+        }
+        const auto* children = node["nodes"].getArray();
+        for (int i = 0; i < children->size(); ++i)
+        {
+            const auto& child = children->getReference (i);
+            const int key = keyFor (node, *first, i);
+            if (key > 127 || ! hasPatch (child))
+                continue;
+            auto childPath = path;
+            childPath.add (child["title"].toString().trim());
+            auto childKeys = keys;
+            childKeys.push_back (key);
+            collect (child, childPath, childKeys, out);
+        }
+    }
+}
+
+SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson)
+{
+    SynchronArticulations result;
+    const auto root = stateJson["data"]["custom"]["sampler"]["rootNode"];
+    if (! root.isObject())
+        return result;
+    collect (root, {}, {}, result.choices);
+
+    // Follow the selection down the key-switched levels.
+    auto node = root;
+    while (const auto first = firstKey (node))
+    {
+        const int index = juce::roundToInt ((double) node["currentNodeIndex"]);
+        if (! juce::isPositiveAndBelow (index, node["nodes"].size()))
+            break;
+        const int key = keyFor (node, *first, index);
+        if (key > 127)
+            break;
+        result.currentKeys.push_back (key);
+        node = node["nodes"][index];
+    }
+    return result;
+}
+
+std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBlock& state)
+{
+    const auto json = synchronStateJson (state);
+    if (! json)
+        return std::nullopt;
+    const auto parsed = juce::JSON::parse (*json);
+    if (! parsed["data"].isObject())
+        return std::nullopt;
+    return synchronArticulationsFromJson (parsed);
+}
 }

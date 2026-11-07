@@ -65,6 +65,8 @@ public:
     {
         keys = usage.keys;
         text = keysText (usage.keys);
+        if (usage.mapped && ! usage.keys.empty())
+            text = juce::String (usage.articulation) + "  (" + text + ")";
         count = juce::String (usage.notes) + (usage.notes == 1 ? " note" : " notes");
         colour = theme::articulation (colourIndex);
         repaint();
@@ -113,8 +115,8 @@ public:
             l->setFont (juce::FontOptions (12.0f));
             l->setColour (juce::Label::textColourId, theme::textDim);
         }
-        articulationHint.setText ("Keyswitches in the file (colours match the notes). "
-                                  "They're kept exactly as written.", juce::dontSendNotification);
+        articulationHint.setText ("Articulations in the part (colours match the notes). The file's keyswitches "
+                                  "are kept as written, except where you pick an articulation.", juce::dontSendNotification);
 
         addAndMakeVisible (presetLabel);
         presetLabel.setFont (juce::FontOptions (12.0f));
@@ -403,7 +405,10 @@ private:
         const auto& r = t.result.report;
         juce::String s;
         s << r.notesOut << " notes, " << (int) t.result.phrases.size() << " phrases, "
-          << r.keyswitchesIn << " keyswitches kept\n";
+          << (r.keyswitchesIn - r.keyswitchesReplaced) << " keyswitches kept\n";
+        if (r.keyswitchesWritten > 0 || r.keyswitchesReplaced > 0)
+            s << r.keyswitchesWritten << " keyswitches written for picked articulations"
+              << (r.keyswitchesReplaced > 0 ? ", " + juce::String (r.keyswitchesReplaced) + " replaced" : juce::String()) << "\n";
         s << (int) t.result.part.controllers.size() << " controller events written";
         if (r.controllersRemoved > 0)
             s << ", " << r.controllersRemoved << " old ones removed";

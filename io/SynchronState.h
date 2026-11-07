@@ -29,6 +29,26 @@ namespace vslf::io
     // Synchron Player's.
     std::optional<SynchronPreset> synchronPreset (const juce::MemoryBlock& state);
 
+    // The articulations a Synchron Player preset can switch to by keyswitch,
+    // read from its articulation tree (data.custom.sampler.rootNode).
+    struct SynchronArticulation
+    {
+        juce::StringArray path; // {"Long notes", "Marcato"}
+        std::vector<int> keys;  // one key per level, MIDI note numbers
+        juce::String name() const { return path.joinIntoString (" > "); }
+    };
+    struct SynchronArticulations
+    {
+        std::vector<SynchronArticulation> choices; // in the tree's order
+        std::vector<int> currentKeys;              // the selection saved in the state
+    };
+
+    // From the JSON inside the state (see synchronStateJson). Empty if it has
+    // no articulation tree.
+    SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson);
+    // From a Synchron Player state, or nothing if the state isn't Synchron Player's.
+    std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBlock& state);
+
     // If the state shows the Flow view with no Flow preset loaded, returns the
     // same state switched to the Precision view. Otherwise returns nothing:
     // the state is left as it is.
