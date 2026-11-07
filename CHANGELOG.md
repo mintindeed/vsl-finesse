@@ -7,12 +7,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- When you load a preset in Synchron Player, the track's **instrument profile** (and with it the playable range) and **Synchron preset folder** now follow it: e.g. "02 VelXF - MOD/01 Violin I - VelXF" picks Violins and VelXF - MOD. The app checks while Synchron's window is open and when you close it. Only a change of preset does this, so a profile you pick by hand stays until you load another preset. Presets the app doesn't recognise (no matching profile) leave the profile as it is.
 - VSL Finesse is now free software under the GNU AGPLv3 (see `LICENSE.md`), the licence that JUCE, which the app is built with, requires for open-source apps.
 
 ### Changed
 - Opening a MIDI file on a track with no instrument now loads Synchron Player automatically, if it's installed. Click **Edit** to open it and load your preset. You can still pick another instrument from the track's instrument button.
 - Synchron Player now opens in its **Precision** view instead of Flow when the app loads it. The app's preset folder choices (VelXF sus - MOD, VelXF - MOD, Velocity) are Precision presets. A Flow preset you've loaded yourself is left alone, and so is a track restored from a session.
 - The **Plain** character button is now called **Simple**.
+
+### Fixed
+- A MIDI file named after a longer instrument name, such as "Bass Clarinet.mid", no longer gets the shorter one's profile (Clarinet).
 
 ## [0.4.0] - 2026-11-07
 

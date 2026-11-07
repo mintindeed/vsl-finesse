@@ -296,4 +296,43 @@ std::optional<juce::MemoryBlock> withPrecisionView (const juce::MemoryBlock& sta
     const auto out = plist.withObject (*index, encodeData (*packed));
     return juce::MemoryBlock (out.data(), out.size());
 }
+
+SynchronPreset describeSynchronPreset (const juce::String& path)
+{
+    SynchronPreset preset;
+    preset.path = path;
+    if (path.isEmpty())
+        return preset;
+
+    // "02 VelXF - MOD" -> "VelXF - MOD": the folders and presets are numbered.
+    auto withoutNumber = [] (const juce::String& part) {
+        return part.trim().trimCharactersAtStart ("0123456789").trim();
+    };
+
+    auto parts = juce::StringArray::fromTokens (path, "/", "");
+    parts.removeEmptyStrings();
+    if (parts.isEmpty())
+        return preset;
+
+    // "01 Violin I - VelXF" -> "Violin I"
+    auto name = withoutNumber (parts[parts.size() - 1]);
+    if (name.contains (" - "))
+        name = name.upToLastOccurrenceOf (" - ", false, false).trim();
+    preset.instrument = name;
+
+    for (int i = parts.size() - 2; i >= 0 && ! preset.type; --i)
+        preset.type = vslf::presetTypeFromString (withoutNumber (parts[i]).toStdString());
+    return preset;
+}
+
+std::optional<SynchronPreset> synchronPreset (const juce::MemoryBlock& state)
+{
+    const auto json = synchronStateJson (state);
+    if (! json)
+        return std::nullopt;
+    const auto parsed = juce::JSON::parse (*json);
+    if (! parsed["data"].isObject())
+        return std::nullopt;
+    return describeSynchronPreset (parsed["data"]["currentPreset"].toString());
+}
 }

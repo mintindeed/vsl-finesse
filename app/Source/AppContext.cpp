@@ -66,10 +66,12 @@ AppContext::AppContext()
     }
 
     knownPlugins.addChangeListener (this);
+    startTimer (1000);
 }
 
 AppContext::~AppContext()
 {
+    stopTimer();
     knownPlugins.removeChangeListener (this);
     engine.stop();
     deviceManager.removeAudioCallback (&engine);
@@ -120,22 +122,9 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
 
     // Guess the instrument from the file or track name if the track still uses the generic profile.
     if (t.profile.id == "generic")
-    {
-        const auto haystack = (file.getFileNameWithoutExtension() + " " + juce::String (t.input.name)).toLowerCase();
-        const vslf::InstrumentProfile* best = nullptr;
-        for (const auto& p : profiles.all())
-        {
-            if (p.id == "generic")
-                continue;
-            const auto name = juce::String (p.name).toLowerCase();
-            const auto singular = name.trimCharactersAtEnd ("s");
-            if (haystack.contains (name) || haystack.contains (singular) || haystack.contains (juce::String (p.id)))
-                if (best == nullptr || p.name.size() > best->name.size()) // prefer "bass clarinet" over "clarinet"
-                    best = &p;
-        }
-        if (best != nullptr)
+        if (const auto* best = vslf::guessProfile ((file.getFileNameWithoutExtension() + " " + juce::String (t.input.name)).toStdString(),
+                                                   profiles.all()))
             t.profile = *best;
-    }
 
     engine.stop();
     session.process (t);
@@ -346,6 +335,17 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
                     instance->setStateInformation (precision->getData(), (int) precision->getSize());
             }
 
+            // The preset it starts with (none, or the one a session restored)
+            // is taken as already matched: only later changes are followed.
+            juce::String presetPath;
+            if (isSynchronPlayer (desc))
+            {
+                juce::MemoryBlock current;
+                instance->getStateInformation (current);
+                if (const auto preset = vslf::io::synchronPreset (current))
+                    presetPath = preset->path;
+            }
+
             engine.prepare (*instance);
             closePluginWindow (track);
             track->pluginDescription = instance->getPluginDescription();
@@ -353,6 +353,7 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
                 track->pluginDescription = desc;
             destroyPlugin (session.swapPlugin (*track, std::move (instance)));
             track->hasPlugin = true;
+            track->synchronPreset = presetPath;
 
             if (callback)
                 callback ({});
@@ -376,6 +377,50 @@ void AppContext::loadDefaultInstrument (Track& t)
             return;
         }
     }
+}
+
+void AppContext::followSynchronPreset (Track& t)
+{
+    auto* plugin = t.audio.plugin.get();
+    if (plugin == nullptr || ! isSynchronPlayer (t.pluginDescription))
+        return;
+
+    juce::MemoryBlock state;
+    plugin->getStateInformation (state);
+    const auto preset = vslf::io::synchronPreset (state);
+    if (! preset || preset->path == t.synchronPreset)
+        return;
+    t.synchronPreset = preset->path;
+
+    bool changed = false;
+    if (preset->instrument.isNotEmpty())
+        if (const auto* p = vslf::guessProfile (preset->instrument.toStdString(), profiles.all()); p != nullptr && p->id != t.profile.id)
+        {
+            t.profile = *p;
+            changed = true;
+        }
+    if (preset->type && *preset->type != t.settings.presetType)
+    {
+        t.settings.presetType = *preset->type;
+        rememberPresetType (*preset->type);
+        changed = true;
+    }
+    if (changed)
+    {
+        session.process (t);
+        session.sendChangeMessage();
+    }
+}
+
+void AppContext::timerCallback()
+{
+    // Presets are picked in Synchron's window, so only tracks with an open
+    // window are checked.
+    std::vector<Track*> open;
+    for (const auto& [track, window] : pluginWindows)
+        open.push_back (track);
+    for (auto* t : open)
+        followSynchronPreset (*t);
 }
 
 void AppContext::removePlugin (Track& t)
@@ -412,7 +457,11 @@ void AppContext::showPluginWindow (Track& t)
 
     auto* track = &t;
     pluginWindows[&t] = std::make_unique<PluginWindow> (editor, t.name + " - " + plugin->getName(),
-                                                        [this, track] { closePluginWindow (track); });
+                                                        [this, track] {
+                                                            if (session.indexOf (track) >= 0)
+                                                                followSynchronPreset (*track);
+                                                            closePluginWindow (track);
+                                                        });
 }
 
 namespace

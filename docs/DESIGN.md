@@ -60,6 +60,8 @@ JUCE has no Zstandard, so the app builds the zstd library (BSD licence) from sou
 
 **Opening in Precision.** Synchron Player starts in Flow, but the engine's dynamics strategies are written for the Precision presets. When the app loads Synchron Player with no saved state (a fresh instrument, not a session), it reads the new instance's state and, if the view is Flow with no Flow preset loaded, changes `currentSkin` to `"SynchronPlayer"` and gives the state back. Only that one value is changed, as text, so the rest of the JSON stays exactly as Synchron wrote it; the other plist entries are copied byte for byte. A loaded Flow preset and a restored session are never touched.
 
+**Following the loaded preset.** The instrument profile and preset folder follow `currentPreset`. Its last part names the instrument (`01 Violin I - VelXF` → "Violin I", matched to a profile with `guessProfile`, longest match wins), and the numbered folder above it is the preset folder (`02 VelXF - MOD`). Synchron doesn't reliably tell the host when it loads a preset, so the app reads the state once a second for tracks whose Synchron window is open (presets are only picked there) and once when the window closes. Each track remembers the last preset path it saw; only a new path changes anything, so a profile picked by hand isn't overruled until another preset is loaded. The preset a plug-in starts with (none, or the session's) counts as seen.
+
 The picker should follow the dynamics buttons' model: drag across bars to select, then choose; with no selection it applies to the whole part. Keyswitches it writes must still land just before the notes they switch.
 
 ### Smarter breaths

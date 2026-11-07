@@ -11,7 +11,8 @@
 
 // Owns everything with application lifetime and implements the user actions,
 // so the UI components stay thin.
-class AppContext : public juce::ChangeListener
+class AppContext : public juce::ChangeListener,
+                   private juce::Timer
 {
 public:
     AppContext();
@@ -60,6 +61,9 @@ public:
     // installed. Does nothing otherwise.
     void loadDefaultInstrument (Track&);
     void removePlugin (Track&);
+    // If Synchron Player has loaded a different preset, sets the track's
+    // instrument profile and preset folder to match it.
+    void followSynchronPreset (Track&);
     void showPluginWindow (Track&);
 
     // Writes everything the instrument plug-in reports about itself (state,
@@ -76,6 +80,7 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    void timerCallback() override;
     void closePluginWindow (Track*);
     void destroyPlugin (std::unique_ptr<juce::AudioPluginInstance>);
 

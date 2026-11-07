@@ -280,6 +280,7 @@ public:
             return;
         fillProfileBox();
         pending = shownTrack->settings;
+        shownPresetType = pending.presetType;
         showSettings();
         refreshResult();
     }
@@ -293,6 +294,14 @@ public:
         {
             refreshAll();
             return;
+        }
+
+        // The preset folder can change from outside (it follows the preset
+        // loaded in Synchron Player): show it.
+        if (t->settings.presetType != shownPresetType)
+        {
+            shownPresetType = pending.presetType = t->settings.presetType;
+            showSettings();
         }
 
         fillProfileBox();
@@ -503,6 +512,7 @@ private:
     InspectorPanel& owner;
     Track* shownTrack = nullptr;
     vslf::Settings pending;
+    vslf::PresetType shownPresetType = vslf::PresetType::VelXFSustain;
     bool inLayout = false;
 
     SectionHeader instrumentHeader { "Instrument" }, articulationHeader { "Articulations" },

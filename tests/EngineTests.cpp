@@ -404,3 +404,26 @@ TEST_CASE ("a new dynamic replaces the part of an old one it covers")
     clearMarkings (m, 0, 1000);
     CHECK (m.front().start >= 1000);
 }
+
+TEST_CASE ("guessProfile finds the instrument a name refers to, preferring the longest match")
+{
+    auto make = [] (std::string id, std::string name) {
+        InstrumentProfile p;
+        p.id = std::move (id);
+        p.name = std::move (name);
+        return p;
+    };
+    const std::vector<InstrumentProfile> profiles { make ("generic", "Generic (no range)"), make ("basses", "Basses"),
+                                                    make ("clarinet", "Clarinet in Bb"), make ("bass-clarinet", "Bass Clarinet"),
+                                                    make ("violins", "Violins") };
+    auto id = [&] (const std::string& text) {
+        const auto* p = guessProfile (text, profiles);
+        return p != nullptr ? p->id : std::string ("none");
+    };
+    CHECK (id ("Violin I") == "violins");
+    CHECK (id ("Double Bass") == "basses");
+    CHECK (id ("Bass Clarinet") == "bass-clarinet"); // not "clarinet", whose name is longer
+    CHECK (id ("Clarinet") == "clarinet");
+    CHECK (id ("Piano") == "none");
+    CHECK (id ("Generic") == "none");
+}

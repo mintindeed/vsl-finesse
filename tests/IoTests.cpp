@@ -195,3 +195,57 @@ TEST_CASE ("Synchron Player state: a loaded Flow preset and other plug-ins are l
     CHECK (! io::withPrecisionView (juce::MemoryBlock (other.toRawUTF8(), other.getNumBytesAsUTF8())).has_value());
     CHECK (! io::synchronStateJson ({}).has_value());
 }
+
+TEST_CASE ("Synchron Player preset paths give the instrument and the preset folder")
+{
+    auto p = io::describeSynchronPreset ("Studio Special Editions/01 Solo strings/02 VelXF - MOD/01 Violin I - VelXF");
+    CHECK (p.instrument == "Violin I");
+    REQUIRE (p.type.has_value());
+    CHECK ((*p.type == PresetType::VelXF));
+
+    p = io::describeSynchronPreset ("Studio Special Editions/03 Brass/01 VelXF sus - MOD/01 Trumpet in C - VelXF sus");
+    CHECK (p.instrument == "Trumpet in C");
+    REQUIRE (p.type.has_value());
+    CHECK ((*p.type == PresetType::VelXFSustain));
+
+    p = io::describeSynchronPreset ("Studio Special Editions/01 Solo strings/03 Velocity/04 Double Bass - Velocity");
+    CHECK (p.instrument == "Double Bass");
+    REQUIRE (p.type.has_value());
+    CHECK ((*p.type == PresetType::Velocity));
+
+    // Flow presets have no preset folder.
+    p = io::describeSynchronPreset ("$FLOW_SE/01 Strings/01 Solo Strings/01 Violin I");
+    CHECK (p.instrument == "Violin I");
+    CHECK (! p.type.has_value());
+
+    CHECK (io::describeSynchronPreset ("").instrument.isEmpty());
+}
+
+TEST_CASE ("Synchron Player instrument names pick the built-in profiles")
+{
+    const auto profiles = io::builtinProfiles();
+    auto id = [&] (const char* name) {
+        const auto* p = guessProfile (name, profiles);
+        return p != nullptr ? p->id : std::string ("none");
+    };
+    CHECK (id ("Violin I") == "violins");
+    CHECK (id ("Viola") == "violas");
+    CHECK (id ("Cello") == "cellos");
+    CHECK (id ("Double Bass") == "basses");
+    CHECK (id ("Trumpet in C") == "trumpet");
+    CHECK (id ("Horn") == "horn");
+    CHECK (id ("Tenor Trombone") == "trombone");
+    CHECK (id ("Bass Trombone") == "bass-trombone");
+    CHECK (id ("English Horn") == "english-horn");
+    CHECK (id ("Bass Clarinet") == "bass-clarinet");
+    CHECK (id ("Contrabassoon") == "contrabassoon");
+    CHECK (id ("Bassoon") == "bassoon");
+}
+
+TEST_CASE ("Synchron Player state: the loaded preset is read from it")
+{
+    const auto preset = io::synchronPreset (fromBase64 (synchronFlowPreset));
+    REQUIRE (preset.has_value());
+    CHECK (preset->instrument == "Violin I");
+    CHECK (io::synchronPreset (fromBase64 (synchronEmptyFlow))->path.isEmpty());
+}
