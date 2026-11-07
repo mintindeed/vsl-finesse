@@ -1,11 +1,13 @@
 name: Build
 
+# Push only: a pull request from a branch in this repository shows the checks
+# of its branch's push build, so a pull_request trigger would build every
+# commit twice. (Pull requests from other branch names or forks don't build;
+# run the workflow by hand from the Actions tab if one needs it.)
 on:
   push:
     branches: [main, "claude/**"]
     # Documentation-only changes don't need a (billed) build.
-    paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
-  pull_request:
     paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   workflow_dispatch:
 
@@ -82,7 +84,7 @@ jobs:
           mkdir -p dist
           ditto -c -k --keepParent "$APP" "dist/VSL-Finesse-macOS.zip"
           cp "$CLI" dist/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: VSL-Finesse-macOS
           path: dist/
