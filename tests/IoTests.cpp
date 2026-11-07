@@ -240,6 +240,10 @@ TEST_CASE ("Synchron Player instrument names pick the built-in profiles")
     CHECK (id ("Bass Clarinet") == "bass-clarinet");
     CHECK (id ("Contrabassoon") == "contrabassoon");
     CHECK (id ("Bassoon") == "bassoon");
+    CHECK (id (io::describeSynchronPreset ("Studio Special Editions/01 Solo strings/01 VelXF sus - MOD/01 Violin I PLUS - VelXF sus")
+                   .instrument.toRawUTF8()) == "violins");
+    CHECK (id (io::describeSynchronPreset ("Studio Special Editions/22 Trumpets/02 VelXF - MOD/02 Trumpet I (C) - VelXF")
+                   .instrument.toRawUTF8()) == "trumpet");
 }
 
 TEST_CASE ("Synchron Player state: the loaded preset is read from it")
@@ -308,4 +312,47 @@ TEST_CASE ("picked articulations round-trip through JSON")
     CHECK (back[0].name == "Long notes > Marcato");
     CHECK (back[1].start == 960);
     CHECK (back[1].end == 1920);
+}
+
+TEST_CASE ("Synchron Player tree: keys get their tree level, picks are looked up by name")
+{
+    // An articulation level with 13 keys runs past an octave: C0..C1 (24..36)
+    // are all the first level, and the Type level starts at C#1 (37).
+    io::SynchronArticulations tree;
+    for (int i = 0; i < 13; ++i)
+        tree.choices.push_back ({ juce::StringArray { "Art " + juce::String (i) }, { 24 + i } });
+    tree.choices.push_back ({ juce::StringArray { "Long notes", "Sustain" }, { 25, 37 } });
+    tree.choices.push_back ({ juce::StringArray { "Long notes", "Marcato" }, { 25, 38 } });
+
+    const auto profile = io::withTree (InstrumentProfile {}, tree.choices);
+    CHECK (profile.levelOf (24) == profile.levelOf (36));
+    CHECK (profile.levelOf (37) != profile.levelOf (36));
+    CHECK (profile.levelOf (37) == profile.levelOf (38));
+    CHECK (profile.isKeyswitch (36));
+    CHECK (profile.resolve ({ 25, 38 }).name == "Long notes > Marcato");
+
+    // The same name in another preset can have other keys; a name it doesn't have is left out.
+    std::vector<ArticulationMarking> picks = { { 0, 960, { 99 }, "Long notes > Marcato" }, { 960, 1920, { 24 }, "Flautando" } };
+    std::vector<std::string> missing;
+    const auto resolved = io::resolvePicks (picks, tree.choices, missing);
+    REQUIRE (resolved.size() == 1);
+    CHECK (resolved[0].keys == std::vector<int> { 25, 38 });
+    CHECK (missing == std::vector<std::string> { "Flautando" });
+
+    // No tree (another instrument): picks keep their keys.
+    CHECK (io::resolvePicks (picks, {}, missing).size() == 2);
+}
+
+TEST_CASE ("Synchron Player state: a three-level tree gives three keys per articulation")
+{
+    const auto a = io::synchronArticulationsFromJson (juce::JSON::parse (
+        R"({"data":{"custom":{"sampler":{"rootNode":{"switchControl":25,"currentNodeIndex":0,"nodes":[)"
+        R"({"title":"Long notes","switchControl":37,"currentNodeIndex":0,"nodes":[)"
+        R"({"title":"Sustain","switchControl":49,"currentNodeIndex":1,"nodes":[{"title":"Vibrato","patchName":"v"},{"title":"Non vibrato","patchName":"nv"}]},)"
+        R"({"title":"Marcato","patchName":"m"}]}]}}}}})"));
+    REQUIRE (a.choices.size() == 3);
+    CHECK (a.choices[1].name() == "Long notes > Sustain > Non vibrato");
+    CHECK (a.choices[1].keys == std::vector<int> { 24, 36, 49 });
+    CHECK (a.choices[2].keys == std::vector<int> { 24, 37 });
+    CHECK (a.currentKeys == std::vector<int> { 24, 36, 49 });
 }

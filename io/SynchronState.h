@@ -2,6 +2,7 @@
 
 #include <juce_core/juce_core.h>
 
+#include <vslf/Engine.h>
 #include <vslf/Settings.h>
 
 #include <optional>
@@ -48,6 +49,25 @@ namespace vslf::io
     SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson);
     // From a Synchron Player state, or nothing if the state isn't Synchron Player's.
     std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBlock& state);
+
+    // The keyswitch levels in a tree. A key's level is its depth in the tree
+    // (the Articulation level, then Type, then a sub-type...), which isn't
+    // always one octave per level. Levels start at this number so they never
+    // meet the engine's octave levels for other keys.
+    constexpr int treeLevelBase = 100;
+
+    // The profile with the tree's keys (at their tree levels) and names
+    // added. The tree wins over the profile's own entries for the same keys.
+    vslf::InstrumentProfile withTree (vslf::InstrumentProfile, const std::vector<SynchronArticulation>&);
+
+    // Picks with their keys looked up again by name in the loaded preset's
+    // tree, since the same keys can mean another articulation in another
+    // preset. Picks whose name isn't in the tree are left out, and their
+    // names added to `missing`. Without a tree, picks keep the keys they were
+    // made with.
+    std::vector<vslf::ArticulationMarking> resolvePicks (const std::vector<vslf::ArticulationMarking>&,
+                                                         const std::vector<SynchronArticulation>&,
+                                                         std::vector<std::string>& missing);
 
     // If the state shows the Flow view with no Flow preset loaded, returns the
     // same state switched to the Precision view. Otherwise returns nothing:

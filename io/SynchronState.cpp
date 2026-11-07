@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <map>
 #include <vector>
 
 namespace vslf::io
@@ -449,5 +450,58 @@ std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBl
     if (! parsed["data"].isObject())
         return std::nullopt;
     return synchronArticulationsFromJson (parsed);
+}
+
+vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::vector<SynchronArticulation>& tree)
+{
+    if (tree.empty())
+        return profile;
+
+    std::map<int, int> levelOf;
+    for (const auto& a : tree)
+        for (size_t depth = 0; depth < a.keys.size(); ++depth)
+            levelOf.emplace (a.keys[depth], treeLevelBase + (int) depth); // the first place a key appears wins
+
+    auto& keys = profile.keys;
+    keys.erase (std::remove_if (keys.begin(), keys.end(), [&] (const vslf::KeyswitchKey& k) { return levelOf.count (k.pitch) > 0; }),
+                keys.end());
+    for (const auto& [pitch, level] : levelOf)
+        keys.push_back ({ pitch, level });
+
+    auto sorted = [] (std::vector<int> v) { std::sort (v.begin(), v.end()); return v; };
+    auto& mappings = profile.articulations;
+    for (const auto& a : tree)
+    {
+        const auto k = sorted (a.keys);
+        mappings.erase (std::remove_if (mappings.begin(), mappings.end(),
+                                        [&] (const vslf::ArticulationMapping& m) { return sorted (m.keys) == k; }),
+                        mappings.end());
+        mappings.push_back ({ a.keys, { a.name().toStdString(), 0.0 } });
+    }
+    return profile;
+}
+
+std::vector<vslf::ArticulationMarking> resolvePicks (const std::vector<vslf::ArticulationMarking>& picks,
+                                                     const std::vector<SynchronArticulation>& tree,
+                                                     std::vector<std::string>& missing)
+{
+    if (tree.empty())
+        return picks;
+    std::vector<vslf::ArticulationMarking> out;
+    for (auto pick : picks)
+    {
+        const auto it = std::find_if (tree.begin(), tree.end(), [&] (const SynchronArticulation& a) {
+            return a.name().toStdString() == pick.name;
+        });
+        if (it == tree.end())
+        {
+            if (std::find (missing.begin(), missing.end(), pick.name) == missing.end())
+                missing.push_back (pick.name);
+            continue;
+        }
+        pick.keys = it->keys;
+        out.push_back (pick);
+    }
+    return out;
 }
 }

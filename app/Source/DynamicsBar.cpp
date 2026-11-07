@@ -111,34 +111,32 @@ void DynamicsBar::showArticulationMenu()
     juce::PopupMenu menu;
     if (! t->synchronArticulations.empty())
     {
-        // The preset's tree: "Long notes > Marcato" is Marcato in a Long notes submenu.
+        // The preset's tree as nested menus: "Long notes > Marcato" is
+        // Marcato in a Long notes submenu, however deep the tree goes.
         menu.addSectionHeader ("From the Synchron preset");
-        juce::String openGroup;
-        juce::PopupMenu group;
-        auto flush = [&] {
-            if (openGroup.isNotEmpty())
-                menu.addSubMenu (openGroup, group);
-            openGroup.clear();
-            group = {};
+        const auto& tree = t->synchronArticulations;
+        std::function<void (juce::PopupMenu&, size_t, size_t, int)> addLevel;
+        addLevel = [&] (juce::PopupMenu& into, size_t begin, size_t end, int depth) {
+            for (size_t i = begin; i < end;)
+            {
+                const auto& a = tree[i];
+                if (a.path.size() <= depth + 1)
+                {
+                    into.addItem (item (a.path[depth], a.name(), a.keys));
+                    ++i;
+                    continue;
+                }
+                // The articulations sharing this branch are next to each other.
+                size_t j = i + 1;
+                while (j < end && tree[j].path.size() > depth + 1 && tree[j].path[depth] == a.path[depth])
+                    ++j;
+                juce::PopupMenu sub;
+                addLevel (sub, i, j, depth + 1);
+                into.addSubMenu (a.path[depth], sub);
+                i = j;
+            }
         };
-        for (const auto& a : t->synchronArticulations)
-        {
-            if (a.path.size() == 1)
-            {
-                flush();
-                menu.addItem (item (a.path[0], a.name(), a.keys));
-                continue;
-            }
-            if (a.path[0] != openGroup)
-            {
-                flush();
-                openGroup = a.path[0];
-            }
-            juce::StringArray rest (a.path);
-            rest.remove (0);
-            group.addItem (item (rest.joinIntoString (" > "), a.name(), a.keys));
-        }
-        flush();
+        addLevel (menu, 0, tree.size(), 0);
     }
     else
     {

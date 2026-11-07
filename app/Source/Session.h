@@ -56,6 +56,12 @@ public:
     };
     Audio audio;
 
+    // The profile the engine and playback use: the instrument profile with
+    // the loaded preset's keyswitch levels and articulation names.
+    vslf::InstrumentProfile engineProfile() const;
+    // A pick whose articulation isn't in the loaded preset (nothing is written for it).
+    bool isPickMissing (const vslf::ArticulationMarking&) const;
+
     // Median input velocity: the flat CC1 the original is auditioned with.
     int flatDynamics() const;
 };

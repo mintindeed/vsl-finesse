@@ -554,3 +554,25 @@ TEST_CASE ("a new pick replaces the part of an old one it covers")
     addArticulationMarking (m, pick (0, 0, { 24 }, "empty")); // ignored
     CHECK (m.size() == 2);
 }
+
+TEST_CASE ("picks switch back by the profile's levels, not by octave")
+{
+    // A 13-key articulation level (24..36) and a Type level at 37/38, as
+    // listed by a preset's tree.
+    auto profile = violinProfile();
+    for (int k = 24; k <= 36; ++k)
+        profile.keys.push_back ({ k, 100 });
+    profile.keys.push_back ({ 37, 101 });
+    profile.keys.push_back ({ 38, 101 });
+
+    auto notes = line (12, 480);
+    std::vector<Note> ks = { note (0, 30, 25), note (0, 30, 37) };
+    ArticulationPicks picks;
+    picks.markings = { pick (4 * 480, 8 * 480, { 36 }, "Art 12") };
+    const auto r = finesse (makePart (notes, ks), profile, Settings {}, {}, picks);
+
+    // 36 is on the articulation level, so only 25 is written back after it
+    // (37 on the Type level was never changed).
+    CHECK (keyswitchPitchesAt (r, 4 * 480 - 240, 4 * 480 + 1) == std::vector<int> { 36 });
+    CHECK (keyswitchPitchesAt (r, 8 * 480 - 240, 8 * 480 + 1) == std::vector<int> { 25 });
+}

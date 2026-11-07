@@ -352,13 +352,16 @@ void PianoRollView::drawArticulations (juce::Graphics& g, const Track& t)
         if (x2 < 0.0f || x1 > (float) getWidth())
             continue;
         const juce::Rectangle<float> r (x1 + 1.0f, (float) area.getY() + 2.0f, juce::jmax (2.0f, x2 - x1 - 2.0f), (float) area.getHeight() - 4.0f);
+        // A pick the loaded preset doesn't have writes nothing: shown as a warning.
+        const bool missing = t.isPickMissing (m);
         g.setColour (theme::panelRaised);
         g.fillRoundedRectangle (r, 3.0f);
-        g.setColour (theme::accent.withAlpha (0.7f));
+        g.setColour ((missing ? theme::warning : theme::accent).withAlpha (0.7f));
         g.drawRoundedRectangle (r, 3.0f, 1.0f);
-        g.setColour (theme::text);
+        g.setColour (missing ? theme::warning : theme::text);
         g.setFont (juce::FontOptions (11.5f));
-        g.drawText (juce::String (m.name), r.reduced (5.0f, 0.0f), juce::Justification::centredLeft, true);
+        g.drawText (juce::String (m.name) + (missing ? " (not in this preset)" : ""), r.reduced (5.0f, 0.0f),
+                    juce::Justification::centredLeft, true);
     }
 
     if (t.articulationMarkings.empty())
