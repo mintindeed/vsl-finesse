@@ -6,7 +6,7 @@ It never adds or changes articulation keyswitches. Keyswitches in your file are 
 
 ## Getting the app
 
-**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Performer-macOS** at the bottom. Unzip it and move **VSL Performer.app** to Applications. Once [signed builds](#signed-builds) are set up, it opens with a double-click. Until then, right-click the app and choose **Open** the first time.
+**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Performer-macOS** at the bottom. Unzip it and move **VSL Performer.app** to Applications. Builds are signed and notarized by Apple (see [Signed builds](#signed-builds)), so it opens with a double-click.
 
 **Or build it yourself** (needs the Xcode Command Line Tools and CMake):
 
