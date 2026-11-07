@@ -37,7 +37,7 @@ These are the design decisions everything else follows. A contribution that work
   - For another DAW, the likely differences are note-name conventions, how the exported MIDI file is read, and getting it back onto a track.
   - Remapping could start from the instrument profile's `dynamicsCC` and `expressionCC`, which today can only be changed by editing its JSON.
 - **Bug reports**, with the MIDI file if you can share it, the Synchron preset you used (its path, e.g. "02 VelXF - MOD/01 Violin I - VelXF"), and what you heard against what you expected.
-- **Synchron presets the app hasn't seen.** On a track with the preset loaded, use **Save instrument details to Desktop** in the instrument menu and attach the file. New trees (a third key-switched level, other Dimension Controls, other libraries) are exactly how the app learns; each becomes a test fixture.
+- **Synchron presets the app hasn't seen.** On a track with the preset loaded, use **Save instrument details to Desktop** in the instrument menu and attach the file ([Testing with your own library](docs/DEVELOPMENT.md#testing-with-your-own-library) has the details, including what to check). New trees (a third key-switched level, other Dimension Controls, other libraries) are exactly how the app learns; each becomes a test fixture.
 - **Better performance rules**, with the musical reasoning and a test. Before/after audio is the best argument.
 - **Roadmap items** (below), and instrument profiles: ranges, open strings, breath lengths.
 - **Clearer words**, in the app and the documentation.

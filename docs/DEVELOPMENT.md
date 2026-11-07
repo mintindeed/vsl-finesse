@@ -6,6 +6,7 @@ Technical documentation for working on the app: building, testing, how the code 
 
 - [Building](#building)
 - [Testing](#testing)
+- [Testing with your own library](#testing-with-your-own-library)
 - [Command line tool](#command-line-tool)
 - [Project layout](#project-layout)
 - [Architecture](#architecture)
@@ -46,7 +47,60 @@ Options: `VSLF_BUILD_APP`, `VSLF_BUILD_CLI` and `VSLF_BUILD_TESTS` (all on). The
 - `tests/IoTests.cpp`: MIDI files, JSON, Synchron Player's state.
 - `tests/SynchronTrees.h`: the articulation trees of real Special Edition presets, cut down to the fields the app reads. Add one whenever a new preset shows something new.
 
-**Getting a preset's state.** On a track with Synchron Player loaded, the instrument menu's **Save instrument details to Desktop** writes a JSON file with the plug-in's parameters and its state. The `state` field is JUCE's `MemoryBlock::toBase64Encoding()` (`<size>.<data>`, JUCE's own 6-bit alphabet, not standard base64); `MemoryBlock::fromBase64Encoding()` reverses it, and `vslf::io::synchronStateJson()` gives the JSON inside (see [below](#synchron-players-saved-state)). Cut the JSON down to the fields the reader uses before adding it as a fixture; the trees in `tests/SynchronTrees.h` show which.
+**Getting a preset's state** for a fixture: see [Testing with your own library](#testing-with-your-own-library). `scripts/synchron-state.py <details file> --json` prints the whole state; cut it down to the fields the reader uses before adding it as a fixture (the trees in `tests/SynchronTrees.h` show which). In C++, `MemoryBlock::fromBase64Encoding()` and `vslf::io::synchronStateJson()` do the same.
+
+## Testing with your own library
+
+How to try VSL Finesse with a VSL library, preset or DAW it hasn't been tried with, and what to send back. [README](../README.md#what-it-works-with-and-where-help-is-welcome) lists what has been tried.
+
+### Before you start
+
+- **Use the Audio Unit, on a Mac.** The app reads Synchron Player's saved state only in the Audio Unit's format. On macOS the instrument menu lists Audio Unit instruments only, and loads nothing until you pick one (a full plug-in scan once crashed the app on a third-party plug-in). The VST3 version, which other platforms use, plays, but the app can't read its state: no preset following, no articulation menu, none of the per-preset shaping.
+- **Use Precision presets.** The app opens a fresh Synchron Player in its Precision view. A Flow preset you load yourself is left alone, but Flow presets assign their controllers differently, so the dynamics may not land where the app expects.
+- **Allow access to your sample drive** when macOS asks (files on a removable volume), or instruments play silence. You can change it later in System Settings → Privacy & Security.
+- **Note your Synchron Player version.** Everything so far was worked out from Synchron Player AU 1.1.0; another version may store things differently.
+
+### Loading a preset so the app sees it
+
+- **Close Synchron's window after loading a preset.** Synchron doesn't tell the host when it loads one, so the app reads its state once a second while the window is open, and once when it closes.
+- **Some values are only read when a preset loads:** the starting articulation, the Dimension Control values (Marcato's attack, XF tremolo) and Attack, Release and Legato blur. They change whenever a keyswitch or controller plays, so reading them later would make the result drift. If you change them in Synchron, load the preset again.
+- **Check the right-hand panel.** The instrument profile is guessed from the preset's name and the preset folder from its folder (VelXF sus - MOD, VelXF - MOD, Velocity); presets in other folders get Velocity or VelXF sus from how the preset picks its dynamic layers. A preset whose name matches no built-in profile keeps the track's profile, often Generic, which has no playable range: keyswitches in your MIDI file that the preset's tree doesn't list are then played as notes. Pick the right profile, or make one (**File → Show Instrument Profiles Folder**; `vsl-finesse --dump-profile violins` gives a starting point).
+- **Note names differ by an octave.** Synchron Player calls middle C "C4", Logic and VSL Finesse "C3": Synchron's C1 is the app's C0.
+
+### Saving instrument details
+
+1. Open the track's instrument button and choose **Save instrument details to Desktop**. It writes `VSL Finesse details <plug-in> <date and time>.json`: the plug-in's parameters, its programs and its saved state. It holds the track's name and the preset's settings, nothing else of yours.
+2. The state is what Synchron shows at that moment, including the articulation that's selected (whatever was last picked or played). To capture a particular selection, click it in Synchron's window first. Saving one file per selection and comparing them is how the articulation tree was found: two files that differed only in the selection.
+3. Read it with `scripts/synchron-state.py <file>`: the preset, its controls and the whole articulation tree as VSL Finesse reads it, with keys in Logic's note names. `--json` prints the whole state. It needs Python 3 and Zstandard (`pip install zstandard`, or Python 3.14+).
+
+```
+Articulation tree:
+  (root)  [Articulation: keyswitch from C0, selected 1.0]
+    C0  Short notes  [Type: keyswitch from C1 (white keys), selected 1.0]
+      C1  Staccato  <01 VI staccato>  (follows velocity)
+      D1  Detache  <03 VI detache>  (follows velocity)
+    C#0  Long notes  [Type: keyswitch from C1, selected 2.0]
+      C1  Sustain  <04 VI sustain>
+      C#1  Marcato  [Attack: Dim.Ctrl/A (velocity), parallel, selected 0.97058]
+        Sustain  <04 VI sustain>  (Mix)
+        Staccato  <01 VI staccato>  (follows velocity)
+```
+
+Compare it with Synchron's window (remember the octave): the names, the keys, and what each Dim.Ctrl is assigned to.
+
+### What to check
+
+- The right-hand panel follows the preset you load.
+- The **Articulation** menu matches Synchron's tree, keys included. Picking one for a passage switches Synchron (watch its window while it plays) and switches back after the passage.
+- The **Report** lists what was shaped (crossfaded articulations, Attack, Release, Legato blur).
+- Original against Finessed: does it sound played? Where doesn't it?
+- In another DAW: the exported file opens with keyswitches before their notes and the controllers in place, and the DAW's own middle-C setting doesn't confuse the keys.
+
+Never tried on a Mac with Synchron Player yet, so any report helps: whether Synchron honours the switch to Precision, preset following, the macOS permission prompts' text, the articulation picker, per-articulation dynamics, crossfaded articulations, and Attack, Release and Legato blur.
+
+### What to send
+
+Open an issue with: the instrument details file, the preset's path, your Synchron Player version, macOS version and DAW, a short MIDI file that shows the problem, and what you heard against what you expected. A preset whose tree looks different from the ones in [Synchron Player's saved state](#synchron-players-saved-state) becomes a test fixture.
 
 ## Command line tool
 
@@ -84,7 +138,7 @@ app/      the Mac app: tracks, plug-in hosting, playback, UI (JUCE)
 cli/      vsl-finesse command line tool
 tests/    unit tests
 profiles/ built-in instrument profiles
-scripts/  build, sign and notarize
+scripts/  build, sign and notarize; read Synchron's saved state
 docs/     methodology and this document
 ```
 

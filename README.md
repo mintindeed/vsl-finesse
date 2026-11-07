@@ -27,7 +27,7 @@ VSL Finesse is developed with what its author owns:
 - **Logic Pro**: the app follows Logic's note names (C3 = middle C), and its result is meant to go back into Logic.
 
 Contributions that widen this are very welcome:
-- **Other VSL products.** Other Synchron libraries, the paid Big Bang Orchestra collections, the earlier SYNCHRON-ized Special Edition, Vienna Instruments: anything that tests VSL Finesse with them and makes it work well. The app reads each preset's articulations and controls rather than relying on a list, so many may already work, but nobody has tried.
+- **Other VSL products.** Other Synchron libraries, the paid Big Bang Orchestra collections, the earlier SYNCHRON-ized Special Edition, Vienna Instruments: anything that tests VSL Finesse with them and makes it work well. The app reads each preset's articulations and controls rather than relying on a list, so many may already work, but nobody has tried. [Testing with your own library](docs/DEVELOPMENT.md#testing-with-your-own-library) explains how.
 - **Other DAWs.** The exported file is standard MIDI, so any DAW can open it, but only Logic has been tried. Reports and fixes for Cubase, Studio One, Digital Performer, Reaper and the rest are welcome.
 - **Remapping controllers.** The app writes dynamics to CC1 and expression to CC11, as the Special Editions' Precision presets expect. It doesn't follow you if you've assigned Synchron's controls to other CCs, or translate to the controller numbers of your own template, and it does no other remapping. Requests and contributions for this are welcome too.
 
