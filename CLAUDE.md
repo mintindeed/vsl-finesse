@@ -16,3 +16,7 @@
 
 - `cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure`
 - The engine (`engine/`) has no dependencies; add a unit test in `tests/` for every engine behaviour change.
+
+## GitHub Actions minutes
+
+The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. Docs-only changes (`*.md`, `docs/`) don't start a build, and a newer push cancels a running build on the same branch.
