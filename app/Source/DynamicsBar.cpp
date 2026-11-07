@@ -8,13 +8,13 @@ DynamicsBar::DynamicsBar (AppContext& a) : app (a)
     scopeLabel.setFont (juce::FontOptions (13.0f));
     scopeLabel.setColour (juce::Label::textColourId, theme::textDim);
 
-    for (int level = 0; level < vslp::numDynamicLevels; ++level)
+    for (int level = 0; level < vslf::numDynamicLevels; ++level)
     {
-        auto* b = dynamicButtons.add (new juce::TextButton (vslp::dynamicSymbol (level)));
-        b->setTooltip (juce::String (vslp::dynamicSymbol (level)) + ": " + vslp::dynamicMeaning (level));
+        auto* b = dynamicButtons.add (new juce::TextButton (vslf::dynamicSymbol (level)));
+        b->setTooltip (juce::String (vslf::dynamicSymbol (level)) + ": " + vslf::dynamicMeaning (level));
         b->setConnectedEdges ((level > 0 ? juce::Button::ConnectedOnLeft : 0)
-                              | (level < vslp::numDynamicLevels - 1 ? juce::Button::ConnectedOnRight : 0));
-        b->onClick = [this, level] { apply (vslp::Marking::Kind::Dynamic, level); };
+                              | (level < vslf::numDynamicLevels - 1 ? juce::Button::ConnectedOnRight : 0));
+        b->onClick = [this, level] { apply (vslf::Marking::Kind::Dynamic, level); };
         addAndMakeVisible (b);
     }
 
@@ -23,8 +23,8 @@ DynamicsBar::DynamicsBar (AppContext& a) : app (a)
     clearButton.setTooltip ("Remove the dynamics markings here");
     crescButton.setConnectedEdges (juce::Button::ConnectedOnRight);
     dimButton.setConnectedEdges (juce::Button::ConnectedOnLeft);
-    crescButton.onClick = [this] { apply (vslp::Marking::Kind::Crescendo, 0); };
-    dimButton.onClick = [this] { apply (vslp::Marking::Kind::Diminuendo, 0); };
+    crescButton.onClick = [this] { apply (vslf::Marking::Kind::Crescendo, 0); };
+    dimButton.onClick = [this] { apply (vslf::Marking::Kind::Diminuendo, 0); };
     clearButton.onClick = [this] {
         if (auto* t = app.session.selectedTrack())
             app.clearMarkings (*t);
@@ -66,11 +66,11 @@ void DynamicsBar::refresh()
     scopeLabel.setText (enabled ? scope : juce::String ("Dynamics"), juce::dontSendNotification);
 }
 
-void DynamicsBar::apply (vslp::Marking::Kind kind, int level)
+void DynamicsBar::apply (vslf::Marking::Kind kind, int level)
 {
     if (auto* t = app.session.selectedTrack())
     {
-        vslp::Marking m;
+        vslf::Marking m;
         m.kind = kind;
         m.level = level;
         app.applyMarking (*t, m);

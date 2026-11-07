@@ -36,11 +36,13 @@ private:
 // ---------------------------------------------------------------------------
 AppContext::AppContext()
 {
+    ProfileLibrary::appDataFolder(); // moves a pre-rename "VSL Performer" folder before the settings are opened
+
     juce::PropertiesFile::Options options;
-    options.applicationName = "VSL Performer";
+    options.applicationName = "VSL Finesse";
     options.filenameSuffix = ".settings";
     options.osxLibrarySubFolder = "Application Support";
-    options.folderName = "VSL Performer";
+    options.folderName = "VSL Finesse";
     properties.setStorageParameters (options);
 
     juce::addDefaultFormatsToManager (formatManager);
@@ -100,7 +102,7 @@ bool AppContext::isMidiFile (const juce::File& f)
 
 bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error)
 {
-    auto read = vslp::io::readMidiFile (file);
+    auto read = vslf::io::readMidiFile (file);
     if (! read.ok)
     {
         error = read.error;
@@ -119,7 +121,7 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
     if (t.profile.id == "generic")
     {
         const auto haystack = (file.getFileNameWithoutExtension() + " " + juce::String (t.input.name)).toLowerCase();
-        const vslp::InstrumentProfile* best = nullptr;
+        const vslf::InstrumentProfile* best = nullptr;
         for (const auto& p : profiles.all())
         {
             if (p.id == "generic")
@@ -147,7 +149,7 @@ bool AppContext::exportFinessed (Track& t, const juce::File& file, juce::String&
         return false;
     }
     std::string e;
-    if (! vslp::io::writeMidiFile (t.result.part, file, e))
+    if (! vslf::io::writeMidiFile (t.result.part, file, e))
     {
         error = e;
         return false;
@@ -167,7 +169,7 @@ void AppContext::setProfile (Track& t, const std::string& id)
     }
 }
 
-void AppContext::updateProfile (Track& t, const vslp::InstrumentProfile& p)
+void AppContext::updateProfile (Track& t, const vslf::InstrumentProfile& p)
 {
     t.profile = p;
     juce::String error;
@@ -178,7 +180,7 @@ void AppContext::updateProfile (Track& t, const vslp::InstrumentProfile& p)
     session.process (t);
 }
 
-void AppContext::applyMarking (Track& t, vslp::Marking m)
+void AppContext::applyMarking (Track& t, vslf::Marking m)
 {
     if (! t.hasMidi)
         return;
@@ -192,53 +194,53 @@ void AppContext::applyMarking (Track& t, vslp::Marking m)
         m.start = 0;
         m.end = partEnd (t);
     }
-    vslp::addMarking (t.markings, m);
+    vslf::addMarking (t.markings, m);
     session.process (t);
 }
 
 void AppContext::clearMarkings (Track& t)
 {
     if (session.hasSelection() && session.selectedTrack() == &t)
-        vslp::clearMarkings (t.markings, session.selectionStart, session.selectionEnd);
+        vslf::clearMarkings (t.markings, session.selectionStart, session.selectionEnd);
     else
         t.markings.clear();
     session.process (t);
 }
 
-vslp::Tick AppContext::partEnd (const Track& t)
+vslf::Tick AppContext::partEnd (const Track& t)
 {
-    vslp::Tick end = 0;
+    vslf::Tick end = 0;
     for (const auto& n : t.input.notes)
         end = std::max (end, n.end);
     return end + 1;
 }
 
-void AppContext::setSettings (Track& t, const vslp::Settings& s)
+void AppContext::setSettings (Track& t, const vslf::Settings& s)
 {
     t.settings = s;
     session.process (t);
 }
 
-void AppContext::saveDefaultSettings (const vslp::Settings& s)
+void AppContext::saveDefaultSettings (const vslf::Settings& s)
 {
-    properties.getUserSettings()->setValue ("defaultSettings", juce::JSON::toString (vslp::io::settingsToJson (s), true));
+    properties.getUserSettings()->setValue ("defaultSettings", juce::JSON::toString (vslf::io::settingsToJson (s), true));
     properties.saveIfNeeded();
 }
 
-vslp::Settings AppContext::defaultSettings()
+vslf::Settings AppContext::defaultSettings()
 {
-    vslp::Settings s;
+    vslf::Settings s;
     const auto text = properties.getUserSettings()->getValue ("defaultSettings");
     if (text.isNotEmpty())
-        vslp::io::settingsFromJson (juce::JSON::parse (text), s);
-    if (auto t = vslp::presetTypeFromString (properties.getUserSettings()->getValue ("presetType").toStdString()))
+        vslf::io::settingsFromJson (juce::JSON::parse (text), s);
+    if (auto t = vslf::presetTypeFromString (properties.getUserSettings()->getValue ("presetType").toStdString()))
         s.presetType = *t;
     return s;
 }
 
-void AppContext::rememberPresetType (vslp::PresetType t)
+void AppContext::rememberPresetType (vslf::PresetType t)
 {
-    properties.getUserSettings()->setValue ("presetType", juce::String (vslp::toString (t)));
+    properties.getUserSettings()->setValue ("presetType", juce::String (vslf::toString (t)));
     properties.saveIfNeeded();
 }
 
@@ -433,7 +435,7 @@ juce::File AppContext::saveInstrumentDetails (Track& t, juce::String& error)
     }
 
     auto* o = new juce::DynamicObject();
-    o->setProperty ("app", "VSL Performer " + juce::JUCEApplicationBase::getInstance()->getApplicationVersion());
+    o->setProperty ("app", "VSL Finesse " + juce::JUCEApplicationBase::getInstance()->getApplicationVersion());
     o->setProperty ("plugin", plugin->getPluginDescription().createXml()->toString (juce::XmlElement::TextFormat().singleLine()));
     o->setProperty ("track", t.name);
 
@@ -464,7 +466,7 @@ juce::File AppContext::saveInstrumentDetails (Track& t, juce::String& error)
 
     const auto stamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d %H-%M-%S");
     auto file = juce::File::getSpecialLocation (juce::File::userDesktopDirectory)
-                    .getChildFile ("VSL Performer details " + juce::File::createLegalFileName (plugin->getName()) + " " + stamp + ".json");
+                    .getChildFile ("VSL Finesse details " + juce::File::createLegalFileName (plugin->getName()) + " " + stamp + ".json");
     if (! file.replaceWithText (juce::JSON::toString (juce::var (o))))
     {
         error = "Couldn't write " + file.getFullPathName();
@@ -500,7 +502,7 @@ void AppContext::removeTrack (int index)
 
 bool AppContext::saveSession (const juce::File& file, juce::String& error)
 {
-    juce::XmlElement root ("VSLPerformerSession");
+    juce::XmlElement root ("VSLFinesseSession");
     root.setAttribute ("version", 1);
 
     for (const auto& t : session.tracks())
@@ -512,8 +514,8 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
         x->setAttribute ("mute", t->audio.mute);
         x->setAttribute ("solo", t->audio.solo);
         x->setAttribute ("gain", (double) t->audio.gain);
-        x->createNewChildElement ("Settings")->addTextElement (juce::JSON::toString (vslp::io::settingsToJson (t->settings), true));
-        x->createNewChildElement ("Markings")->addTextElement (juce::JSON::toString (vslp::io::markingsToJson (t->markings), true));
+        x->createNewChildElement ("Settings")->addTextElement (juce::JSON::toString (vslf::io::settingsToJson (t->settings), true));
+        x->createNewChildElement ("Markings")->addTextElement (juce::JSON::toString (vslf::io::markingsToJson (t->markings), true));
 
         if (t->hasPlugin && t->audio.plugin != nullptr)
         {
@@ -537,9 +539,10 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
 void AppContext::openSession (const juce::File& file, std::function<void (juce::String)> done)
 {
     auto root = juce::XmlDocument::parse (file);
-    if (root == nullptr || ! root->hasTagName ("VSLPerformerSession"))
+    // "VSLPerformerSession": sessions saved before the app was renamed.
+    if (root == nullptr || ! (root->hasTagName ("VSLFinesseSession") || root->hasTagName ("VSLPerformerSession")))
     {
-        done ("Not a VSL Performer session: " + file.getFileName());
+        done ("Not a VSL Finesse session: " + file.getFileName());
         return;
     }
 
@@ -569,9 +572,9 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
 
         t.settings = defaultSettings();
         if (auto* sx = x->getChildByName ("Settings"))
-            vslp::io::settingsFromJson (juce::JSON::parse (sx->getAllSubText()), t.settings);
+            vslf::io::settingsFromJson (juce::JSON::parse (sx->getAllSubText()), t.settings);
         if (auto* mx = x->getChildByName ("Markings"))
-            t.markings = vslp::io::markingsFromJson (juce::JSON::parse (mx->getAllSubText()));
+            t.markings = vslf::io::markingsFromJson (juce::JSON::parse (mx->getAllSubText()));
 
         const juce::File midi (x->getStringAttribute ("midi"));
         if (midi.existsAsFile())

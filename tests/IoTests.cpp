@@ -6,8 +6,8 @@
 #include <JsonIO.h>
 #include <MidiIO.h>
 
-using namespace vslp;
-using namespace vslp::test;
+using namespace vslf;
+using namespace vslf::test;
 
 TEST_CASE ("MIDI files round-trip notes, keyswitches, tempo and meter")
 {
@@ -107,7 +107,7 @@ TEST_CASE ("settings round-trip through JSON")
     CHECK (back.seed == 42);
     CHECK_FALSE (back.useInputVelocity);
     CHECK (back.chords == ChordResolution::KeepLowest);
-    CHECK ((back.presetType == PresetType::Velocity)); // extra parentheses: doctest would pick up vslp::toString
+    CHECK ((back.presetType == PresetType::Velocity)); // extra parentheses: doctest would pick up vslf::toString
 }
 
 TEST_CASE ("built-in profiles load")

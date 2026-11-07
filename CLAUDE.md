@@ -1,4 +1,4 @@
-# Working on VSL Performer
+# Working on VSL Finesse
 
 ## Changelog and versioning (required)
 

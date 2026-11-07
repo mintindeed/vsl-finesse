@@ -2,7 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include <vslp/Engine.h>
+#include <vslf/Engine.h>
 
 #include "PlaybackSequence.h"
 
@@ -25,12 +25,12 @@ public:
     juce::File midiFile;
     bool hasMidi = false;
 
-    vslp::Part input;
+    vslf::Part input;
     std::vector<std::string> readWarnings;
-    vslp::InstrumentProfile profile;
-    vslp::Settings settings;
-    std::vector<vslp::Marking> markings; // pp..ff, crescendos (input ticks)
-    vslp::Result result;
+    vslf::InstrumentProfile profile;
+    vslf::Settings settings;
+    std::vector<vslf::Marking> markings; // pp..ff, crescendos (input ticks)
+    vslf::Result result;
 
     juce::PluginDescription pluginDescription;
     bool hasPlugin = false;
@@ -79,8 +79,8 @@ public:
     // The selected passage (selected track's input ticks), used by the
     // dynamics buttons. No selection = the whole part.
     bool hasSelection() const { return selectionEnd > selectionStart; }
-    vslp::Tick selectionStart = 0, selectionEnd = 0;
-    void setSelection (vslp::Tick start, vslp::Tick end);
+    vslf::Tick selectionStart = 0, selectionEnd = 0;
+    void setSelection (vslf::Tick start, vslf::Tick end);
     void clearSelection();
 
     // Longest part, in seconds.

@@ -1,8 +1,8 @@
-#include "vslp/Model.h"
+#include "vslf/Model.h"
 
 #include <algorithm>
 
-namespace vslp
+namespace vslf
 {
 
 TempoMap::TempoMap (int ppq, std::vector<TempoChange> changes)
@@ -71,4 +71,4 @@ double TempoMap::ticksForMs (double tick, double ms) const
     return tickAt (s + ms / 1000.0) - tick;
 }
 
-} // namespace vslp
+} // namespace vslf

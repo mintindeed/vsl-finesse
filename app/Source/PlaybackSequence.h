@@ -2,8 +2,8 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
-#include <vslp/Model.h>
-#include <vslp/Profile.h>
+#include <vslf/Model.h>
+#include <vslf/Profile.h>
 
 #include <memory>
 #include <vector>
@@ -15,8 +15,8 @@ class PlaybackSequence
 public:
     // `defaultDynamics` is sent for CC1 when chasing a position before any CC1
     // in the part (so a flat "original" doesn't inherit the finessed value).
-    static std::shared_ptr<const PlaybackSequence> build (const vslp::Part& part,
-                                                          const vslp::InstrumentProfile& profile,
+    static std::shared_ptr<const PlaybackSequence> build (const vslf::Part& part,
+                                                          const vslf::InstrumentProfile& profile,
                                                           int defaultDynamics);
 
     // Adds the events in [from, to) to `out`, at sample offsets within a block
@@ -28,8 +28,8 @@ public:
     void chase (double t, juce::MidiBuffer& out) const;
 
     double lengthSeconds() const { return length; }
-    const vslp::TempoMap& tempo() const { return tempoMap; }
-    const std::vector<vslp::TimeSignature>& timeSignatures() const { return meters; }
+    const vslf::TempoMap& tempo() const { return tempoMap; }
+    const std::vector<vslf::TimeSignature>& timeSignatures() const { return meters; }
     const std::vector<int>& channels() const { return usedChannels; }
 
 private:
@@ -41,8 +41,8 @@ private:
     };
 
     std::vector<Event> events;
-    vslp::TempoMap tempoMap;
-    std::vector<vslp::TimeSignature> meters;
+    vslf::TempoMap tempoMap;
+    std::vector<vslf::TimeSignature> meters;
     std::vector<int> usedChannels;
     double length = 0.0;
     int dynamicsCC = 1;

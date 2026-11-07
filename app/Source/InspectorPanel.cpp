@@ -13,31 +13,31 @@ juce::String keysText (const std::vector<int>& keys)
         return "Before first keyswitch";
     juce::StringArray names;
     for (int k : keys)
-        names.add (vslp::noteName (k));
+        names.add (vslf::noteName (k));
     return names.joinIntoString (" + ");
 }
 
 struct SliderSpec
 {
     const char* label;
-    double vslp::Settings::* field;
+    double vslf::Settings::* field;
     double min, max, step;
     const char* suffix;
     const char* tooltip;
 };
 
 const SliderSpec sliderSpecs[] = {
-    { "Intensity",          &vslp::Settings::intensity,             0.0, 2.0, 0.01, "",    "Overall amount of shaping on top of the base dynamic" },
-    { "Dynamic offset",     &vslp::Settings::levelOffset,          -0.5, 0.5, 0.01, "",    "Raise or lower the whole part's dynamic" },
-    { "Phrase arch",        &vslp::Settings::phraseArchAmount,      0.0, 2.0, 0.01, "",    "Grow towards each phrase's peak and relax after it" },
-    { "Long-note swells",   &vslp::Settings::longNoteSwellAmount,   0.0, 2.0, 0.01, "",    "Gentle swell inside long notes (CC1, or CC11 in Velocity presets)" },
-    { "Phrase-end taper",   &vslp::Settings::phraseEndTaperAmount,  0.0, 2.0, 0.01, "",    "Fade the last note of each phrase (CC1 and CC11)" },
-    { "Metric accents",     &vslp::Settings::metricAccentAmount,    0.0, 2.0, 0.01, "",    "Slightly stronger velocity on downbeats (where velocity is the dynamic)" },
-    { "Higher = louder",    &vslp::Settings::highLoudAmount,        0.0, 2.0, 0.01, "",    "Higher notes in a phrase a little louder" },
-    { "Humanize velocity",  &vslp::Settings::humanizeVelocity,      0.0, 1.0, 0.01, "",    "Small random velocity variation (repeatable via the seed)" },
-    { "Humanize timing",    &vslp::Settings::humanizeTimingMs,      0.0, 30.0, 0.5, " ms", "Maximum random shift of note starts" },
-    { "Note overlap",       &vslp::Settings::legatoOverlapMs,       0.0, 150.0, 1.0, " ms", "Connected notes overlap by this much, which triggers legato transitions in legato patches" },
-    { "Connect gaps up to", &vslp::Settings::legatoMaxGapMs,        0.0, 300.0, 1.0, " ms", "Notes with gaps up to this long count as connected" },
+    { "Intensity",          &vslf::Settings::intensity,             0.0, 2.0, 0.01, "",    "Overall amount of shaping on top of the base dynamic" },
+    { "Dynamic offset",     &vslf::Settings::levelOffset,          -0.5, 0.5, 0.01, "",    "Raise or lower the whole part's dynamic" },
+    { "Phrase arch",        &vslf::Settings::phraseArchAmount,      0.0, 2.0, 0.01, "",    "Grow towards each phrase's peak and relax after it" },
+    { "Long-note swells",   &vslf::Settings::longNoteSwellAmount,   0.0, 2.0, 0.01, "",    "Gentle swell inside long notes (CC1, or CC11 in Velocity presets)" },
+    { "Phrase-end taper",   &vslf::Settings::phraseEndTaperAmount,  0.0, 2.0, 0.01, "",    "Fade the last note of each phrase (CC1 and CC11)" },
+    { "Metric accents",     &vslf::Settings::metricAccentAmount,    0.0, 2.0, 0.01, "",    "Slightly stronger velocity on downbeats (where velocity is the dynamic)" },
+    { "Higher = louder",    &vslf::Settings::highLoudAmount,        0.0, 2.0, 0.01, "",    "Higher notes in a phrase a little louder" },
+    { "Humanize velocity",  &vslf::Settings::humanizeVelocity,      0.0, 1.0, 0.01, "",    "Small random velocity variation (repeatable via the seed)" },
+    { "Humanize timing",    &vslf::Settings::humanizeTimingMs,      0.0, 30.0, 0.5, " ms", "Maximum random shift of note starts" },
+    { "Note overlap",       &vslf::Settings::legatoOverlapMs,       0.0, 150.0, 1.0, " ms", "Connected notes overlap by this much, which triggers legato transitions in legato patches" },
+    { "Connect gaps up to", &vslf::Settings::legatoMaxGapMs,        0.0, 300.0, 1.0, " ms", "Notes with gaps up to this long count as connected" },
 };
 
 class SectionHeader : public juce::Component
@@ -61,7 +61,7 @@ public:
 class ArticulationRow : public juce::Component
 {
 public:
-    void set (const vslp::ArticulationUsage& usage, int colourIndex)
+    void set (const vslf::ArticulationUsage& usage, int colourIndex)
     {
         keys = usage.keys;
         text = keysText (usage.keys);
@@ -121,10 +121,10 @@ public:
         presetLabel.setColour (juce::Label::textColourId, theme::textDim);
         presetLabel.setText ("Synchron preset folder", juce::dontSendNotification);
 
-        const vslp::PresetType types[] = { vslp::PresetType::VelXFSustain, vslp::PresetType::VelXF, vslp::PresetType::Velocity };
+        const vslf::PresetType types[] = { vslf::PresetType::VelXFSustain, vslf::PresetType::VelXF, vslf::PresetType::Velocity };
         for (int i = 0; i < 3; ++i)
         {
-            auto* b = presetButtons.add (new juce::TextButton (vslp::displayName (types[i])));
+            auto* b = presetButtons.add (new juce::TextButton (vslf::displayName (types[i])));
             b->setClickingTogglesState (true);
             b->setRadioGroupId (2001);
             b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
@@ -187,7 +187,7 @@ public:
             s->setTextValueSuffix (spec.suffix);
             s->setTextBoxStyle (juce::Slider::TextBoxRight, false, 64, 20);
             s->setTooltip (spec.tooltip);
-            s->setDoubleClickReturnValue (true, vslp::Settings {}.*spec.field);
+            s->setDoubleClickReturnValue (true, vslf::Settings {}.*spec.field);
             const auto field = spec.field;
             s->onValueChange = [this, s, field] { pending.*field = s->getValue(); settingsChanged(); };
             addChildComponent (s);
@@ -253,7 +253,7 @@ public:
         addChildComponent (resetButton);
         resetButton.onClick = [this] {
             const auto seed = pending.seed;
-            pending = vslp::Settings {};
+            pending = vslf::Settings {};
             pending.seed = seed;
             showSettings();
             settingsChanged();
@@ -296,8 +296,8 @@ public:
         }
 
         fillProfileBox();
-        lowEditor.setText (vslp::noteName (t->profile.lowestNote), juce::dontSendNotification);
-        highEditor.setText (vslp::noteName (t->profile.highestNote), juce::dontSendNotification);
+        lowEditor.setText (vslf::noteName (t->profile.lowestNote), juce::dontSendNotification);
+        highEditor.setText (vslf::noteName (t->profile.highestNote), juce::dontSendNotification);
         rangeLabel.setText ("Range", juce::dontSendNotification);
         revertButton.setVisible (app.profiles.isCustomised (t->profile.id));
 
@@ -328,7 +328,7 @@ public:
         int id = 1;
         for (const auto& p : app.profiles.all())
         {
-            const juce::String f = vslp::toString (p.family);
+            const juce::String f = vslf::toString (p.family);
             if (f != family)
             {
                 family = f;
@@ -350,8 +350,8 @@ public:
         for (int i = 0; i < 3; ++i)
             characterButtons[i]->setToggleState (std::abs (pending.intensity - characterIntensity[i]) < 0.03,
                                                  juce::dontSendNotification);
-        const int typeIndex = pending.presetType == vslp::PresetType::VelXFSustain ? 0
-                            : pending.presetType == vslp::PresetType::VelXF ? 1 : 2;
+        const int typeIndex = pending.presetType == vslf::PresetType::VelXFSustain ? 0
+                            : pending.presetType == vslf::PresetType::VelXF ? 1 : 2;
         presetButtons[typeIndex]->setToggleState (true, juce::dontSendNotification);
     }
 
@@ -374,8 +374,8 @@ private:
         auto* t = track();
         if (t == nullptr)
             return;
-        const auto low = vslp::parseNoteName (lowEditor.getText().toStdString());
-        const auto high = vslp::parseNoteName (highEditor.getText().toStdString());
+        const auto low = vslf::parseNoteName (lowEditor.getText().toStdString());
+        const auto high = vslf::parseNoteName (highEditor.getText().toStdString());
         if (! low || ! high || *low > *high)
         {
             refreshResult(); // put the old values back
@@ -502,7 +502,7 @@ private:
     AppContext& app;
     InspectorPanel& owner;
     Track* shownTrack = nullptr;
-    vslp::Settings pending;
+    vslf::Settings pending;
     bool inLayout = false;
 
     SectionHeader instrumentHeader { "Instrument" }, articulationHeader { "Articulations" },

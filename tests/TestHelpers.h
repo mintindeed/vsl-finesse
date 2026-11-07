@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vslp/Engine.h>
+#include <vslf/Engine.h>
 
 #include <algorithm>
 #include <vector>
 
-namespace vslp::test
+namespace vslf::test
 {
 
 // A part at 120 bpm, 480 ppq, 4/4.
@@ -69,4 +69,4 @@ inline InstrumentProfile violinProfile()
     return p;
 }
 
-} // namespace vslp::test
+} // namespace vslf::test

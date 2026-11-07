@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace vslp
+namespace vslf
 {
 
 // The kind of Synchron preset the part is played with. These are the three
@@ -93,4 +93,4 @@ struct Settings
     ChordResolution chords = ChordResolution::KeepHighest;
 };
 
-} // namespace vslp
+} // namespace vslf

@@ -1,13 +1,13 @@
-juce_add_gui_app (VSLPerformerApp
-    PRODUCT_NAME "VSL Performer"
+juce_add_gui_app (VSLFinesseApp
+    PRODUCT_NAME "VSL Finesse"
     COMPANY_NAME "mintindeed"
-    BUNDLE_ID "io.github.mintindeed.vslperformer"
+    BUNDLE_ID "io.github.mintindeed.vslfinesse"
     VERSION "${PROJECT_VERSION}"
-    DOCUMENT_EXTENSIONS mid midi vslpsession
+    DOCUMENT_EXTENSIONS mid midi vslfsession vslpsession
     HARDENED_RUNTIME_ENABLED FALSE
     APP_SANDBOX_ENABLED FALSE)
 
-target_sources (VSLPerformerApp PRIVATE
+target_sources (VSLFinesseApp PRIVATE
     Source/AppContext.cpp
     Source/AudioEngine.cpp
     Source/DynamicsBar.cpp
@@ -20,17 +20,17 @@ target_sources (VSLPerformerApp PRIVATE
     Source/Session.cpp
     Source/TrackListView.cpp)
 
-target_compile_definitions (VSLPerformerApp PRIVATE
-    JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:VSLPerformerApp,JUCE_PRODUCT_NAME>"
-    JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:VSLPerformerApp,JUCE_VERSION>"
+target_compile_definitions (VSLFinesseApp PRIVATE
+    JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:VSLFinesseApp,JUCE_PRODUCT_NAME>"
+    JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:VSLFinesseApp,JUCE_VERSION>"
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_PLUGINHOST_VST3=1
     JUCE_PLUGINHOST_AU=$<IF:$<PLATFORM_ID:Darwin>,1,0>
     JUCE_PLUGINHOST_LV2=0)
 
-target_link_libraries (VSLPerformerApp PRIVATE
-    vslp_io
+target_link_libraries (VSLFinesseApp PRIVATE
+    vslf_io
     juce::juce_audio_basics
     juce::juce_audio_devices
     juce::juce_audio_processors

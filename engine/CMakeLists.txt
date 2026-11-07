@@ -1,4 +1,4 @@
-add_library (vslp_engine STATIC
+add_library (vslf_engine STATIC
     src/Analysis.cpp
     src/Controllers.cpp
     src/Dynamics.cpp
@@ -9,11 +9,11 @@ add_library (vslp_engine STATIC
     src/TempoMap.cpp
     src/Timing.cpp)
 
-target_include_directories (vslp_engine PUBLIC include)
-target_compile_features (vslp_engine PUBLIC cxx_std_20)
+target_include_directories (vslf_engine PUBLIC include)
+target_compile_features (vslf_engine PUBLIC cxx_std_20)
 
 if (MSVC)
-    target_compile_options (vslp_engine PRIVATE /W4)
+    target_compile_options (vslf_engine PRIVATE /W4)
 else()
-    target_compile_options (vslp_engine PRIVATE -Wall -Wextra -Wshadow -Wconversion -Wno-sign-conversion)
+    target_compile_options (vslf_engine PRIVATE -Wall -Wextra -Wshadow -Wconversion -Wno-sign-conversion)
 endif()

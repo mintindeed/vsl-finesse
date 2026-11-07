@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace vslp
+namespace vslf
 {
 
 using Tick = int64_t;
@@ -97,4 +97,4 @@ struct Part
     std::vector<RawEvent> metaEvents;         // tempo / time sig / key sig / markers etc.
 };
 
-} // namespace vslp
+} // namespace vslf

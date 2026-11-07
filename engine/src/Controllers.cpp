@@ -13,7 +13,7 @@
 #include <cmath>
 #include <map>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 namespace
@@ -239,4 +239,4 @@ void writeControllers (Context& ctx)
                       [] (const ControllerEvent& a, const ControllerEvent& b) { return a.tick < b.tick; });
 }
 
-} // namespace vslp::detail
+} // namespace vslf::detail

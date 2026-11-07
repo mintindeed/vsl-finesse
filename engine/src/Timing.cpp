@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 void applyTiming (Context& ctx)
@@ -117,4 +117,4 @@ void applyTiming (Context& ctx)
     }
 }
 
-} // namespace vslp::detail
+} // namespace vslf::detail

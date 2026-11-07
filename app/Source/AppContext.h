@@ -34,18 +34,18 @@ public:
     void setProfile (Track&, const std::string& id);
     // Applies an edited profile to the track, saves it as the user's copy and
     // re-runs the engine.
-    void updateProfile (Track&, const vslp::InstrumentProfile&);
-    void setSettings (Track&, const vslp::Settings&);
+    void updateProfile (Track&, const vslf::InstrumentProfile&);
+    void setSettings (Track&, const vslf::Settings&);
 
     // Dynamics markings: applied to the selection, or the whole part if
     // nothing is selected. Clearing works the same way.
-    void applyMarking (Track&, vslp::Marking);
+    void applyMarking (Track&, vslf::Marking);
     void clearMarkings (Track&);
-    static vslp::Tick partEnd (const Track&);
-    void saveDefaultSettings (const vslp::Settings&);
-    vslp::Settings defaultSettings();
+    static vslf::Tick partEnd (const Track&);
+    void saveDefaultSettings (const vslf::Settings&);
+    vslf::Settings defaultSettings();
     // The preset type last chosen becomes the default for new tracks.
-    void rememberPresetType (vslp::PresetType);
+    void rememberPresetType (vslf::PresetType);
 
     // --- Plugins ------------------------------------------------------------
     // Installed instruments. On macOS this lists Audio Unit instruments

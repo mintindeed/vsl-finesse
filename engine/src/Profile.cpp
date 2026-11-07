@@ -1,11 +1,11 @@
-#include "vslp/Profile.h"
-#include "vslp/Settings.h"
+#include "vslf/Profile.h"
+#include "vslf/Settings.h"
 
 #include <algorithm>
 #include <cctype>
 #include <string>
 
-namespace vslp
+namespace vslf
 {
 
 bool InstrumentProfile::isKeyswitch (int pitch) const
@@ -168,4 +168,4 @@ std::optional<int> parseNoteName (const std::string& text)
     }
 }
 
-} // namespace vslp
+} // namespace vslf

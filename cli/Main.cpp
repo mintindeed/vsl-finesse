@@ -1,25 +1,25 @@
-// vslp-finesse: the engine on the command line.
+// vsl-finesse: the engine on the command line.
 //
-//   vslp-finesse Melody.mid --instrument violins
-//   vslp-finesse Melody.mid -p my-violins.json -s settings.json -o out.mid
-//   vslp-finesse --list-instruments
+//   vsl-finesse Melody.mid --instrument violins
+//   vsl-finesse Melody.mid -p my-violins.json -s settings.json -o out.mid
+//   vsl-finesse --list-instruments
 
 #include <juce_core/juce_core.h>
 
 #include <BuiltinProfiles.h>
 #include <JsonIO.h>
 #include <MidiIO.h>
-#include <vslp/Engine.h>
+#include <vslf/Engine.h>
 
 #include <iostream>
 #include <optional>
 
-using namespace vslp;
+using namespace vslf;
 
 static void usage()
 {
     std::cout <<
-        "usage: vslp-finesse <input.mid> [options]\n"
+        "usage: vsl-finesse <input.mid> [options]\n"
         "\n"
         "  -o, --output <file.mid>     output file (default: \"<input> (Finessed).mid\")\n"
         "  -i, --instrument <id>       built-in instrument profile (default: generic)\n"

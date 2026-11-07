@@ -4,7 +4,7 @@
 #include "MainComponent.h"
 #include "Theme.h"
 
-class VSLPerformerApplication : public juce::JUCEApplication
+class VSLFinesseApplication : public juce::JUCEApplication
 {
 public:
     const juce::String getApplicationName() override    { return JUCE_APPLICATION_NAME_STRING; }
@@ -80,4 +80,4 @@ private:
     std::unique_ptr<MainWindow> window;
 };
 
-START_JUCE_APPLICATION (VSLPerformerApplication)
+START_JUCE_APPLICATION (VSLFinesseApplication)

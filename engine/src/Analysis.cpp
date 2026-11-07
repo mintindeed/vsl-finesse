@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 namespace
@@ -255,4 +255,4 @@ void analyze (Context& ctx)
     }
 }
 
-} // namespace vslp::detail
+} // namespace vslf::detail

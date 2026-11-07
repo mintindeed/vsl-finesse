@@ -26,7 +26,7 @@ jobs:
           sudo apt-get install -y ninja-build libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev \
             libxinerama-dev libxcursor-dev libxext-dev libxi-dev libasound2-dev
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVSLP_BUILD_APP=OFF
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DVSLF_BUILD_APP=OFF
       - name: Build
         run: cmake --build build
       - name: Test
@@ -69,20 +69,20 @@ jobs:
           NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
         run: |
           scripts/sign-and-notarize.sh \
-            "build/app/VSLPerformerApp_artefacts/Release/VSL Performer.app" \
-            "build/cli/vslp_cli_artefacts/Release/vslp-finesse" \
+            "build/app/VSLFinesseApp_artefacts/Release/VSL Finesse.app" \
+            "build/cli/vslf_cli_artefacts/Release/vsl-finesse" \
             dist
       - name: Package unsigned
         # Without the secrets: ad-hoc signature (right-click > Open the first time).
         if: steps.signing.outputs.available != 'true'
         run: |
-          APP="build/app/VSLPerformerApp_artefacts/Release/VSL Performer.app"
-          CLI="build/cli/vslp_cli_artefacts/Release/vslp-finesse"
+          APP="build/app/VSLFinesseApp_artefacts/Release/VSL Finesse.app"
+          CLI="build/cli/vslf_cli_artefacts/Release/vsl-finesse"
           codesign --force --deep --sign - "$APP"
           mkdir -p dist
-          ditto -c -k --keepParent "$APP" "dist/VSL-Performer-macOS.zip"
+          ditto -c -k --keepParent "$APP" "dist/VSL-Finesse-macOS.zip"
           cp "$CLI" dist/
       - uses: actions/upload-artifact@v4
         with:
-          name: VSL-Performer-macOS
+          name: VSL-Finesse-macOS
           path: dist/

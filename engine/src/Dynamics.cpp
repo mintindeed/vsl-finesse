@@ -8,7 +8,7 @@
 #include <cmath>
 #include <vector>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 namespace
@@ -110,4 +110,4 @@ void shapeDynamics (Context& ctx)
     }
 }
 
-} // namespace vslp::detail
+} // namespace vslf::detail

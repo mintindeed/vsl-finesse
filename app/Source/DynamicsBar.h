@@ -19,7 +19,7 @@ public:
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void refresh();
-    void apply (vslp::Marking::Kind, int level);
+    void apply (vslf::Marking::Kind, int level);
 
     AppContext& app;
     juce::Label scopeLabel;

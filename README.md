@@ -1,4 +1,4 @@
-# VSL Performer
+# VSL Finesse
 
 A Mac app that takes a flat MIDI part (one instrument per file) and writes a natural-sounding performance for Vienna Symphonic Library's Studio Special Editions: CC1 dynamics, CC11 expression, velocities and note timing. You can audition the result through Synchron Player inside the app, compare it with the original (A/B), and export a "Finessed" MIDI file to drag back into Logic.
 
@@ -6,7 +6,7 @@ It never adds or changes articulation keyswitches. Keyswitches in your file are 
 
 ## Getting the app
 
-**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Performer-macOS** at the bottom. Unzip it and move **VSL Performer.app** to Applications. Builds are signed and notarized by Apple (see [Signed builds](#signed-builds)), so it opens with a double-click.
+**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Finesse-macOS** at the bottom. Unzip it and move **VSL Finesse.app** to Applications. Builds are signed and notarized by Apple (see [Signed builds](#signed-builds)), so it opens with a double-click.
 
 **Or build it yourself** (needs the Xcode Command Line Tools and CMake):
 
@@ -41,7 +41,7 @@ brew install cmake         # once
 
 ### The KTH performance rules
 
-The engine is built on the ideas of the **KTH rule system for music performance**, developed since the 1980s at KTH, the Royal Institute of Technology in Stockholm (Johan Sundberg, Anders Friberg and colleagues), and tested in listening experiments. Each rule is a small, explainable observation about what human players do with a written note. Each rule has one strength setting, and combining a handful of rules makes a mechanical performance sound played. The rules below are the ones VSL Performer uses, adapted for Synchron Player's CC1, CC11 and velocity.
+The engine is built on the ideas of the **KTH rule system for music performance**, developed since the 1980s at KTH, the Royal Institute of Technology in Stockholm (Johan Sundberg, Anders Friberg and colleagues), and tested in listening experiments. Each rule is a small, explainable observation about what human players do with a written note. Each rule has one strength setting, and combining a handful of rules makes a mechanical performance sound played. The rules below are the ones VSL Finesse uses, adapted for Synchron Player's CC1, CC11 and velocity.
 
 | Rule | What players do | How the app applies it |
 |---|---|---|
@@ -84,15 +84,15 @@ The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pau
 The engine also runs from Terminal, which is handy for batch work:
 
 ```bash
-vslp-finesse Violins.mid --instrument violins --type velxf
-vslp-finesse Flute.mid -p my-flute.json -s settings.json -o out.mid
-vslp-finesse --list-instruments
-vslp-finesse --dump-profile violins > my-violins.json
+vsl-finesse Violins.mid --instrument violins --type velxf
+vsl-finesse Flute.mid -p my-flute.json -s settings.json -o out.mid
+vsl-finesse --list-instruments
+vsl-finesse --dump-profile violins > my-violins.json
 ```
 
 ## Instrument profiles
 
-Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON in `~/Library/Application Support/VSL Performer/Profiles` (**File → Show Instrument Profiles Folder**). Note names use Logic's convention (C3 = middle C).
+Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON in `~/Library/Application Support/VSL Finesse/Profiles` (**File → Show Instrument Profiles Folder**). Note names use Logic's convention (C3 = middle C).
 
 ```json
 {
@@ -129,7 +129,7 @@ GitHub can sign every build with a Developer ID certificate and have Apple notar
    gh secret set NOTARY_API_ISSUER_ID                # the Issuer ID
    ```
 
-The next build signs the app with the hardened runtime, sends it to Apple for notarization (usually a few minutes), and staples the ticket to the app. Then delete the `.p12` and `.p8` files from your Downloads, or keep them somewhere safe. The app's entitlements ([app/VSLPerformer.entitlements](app/VSLPerformer.entitlements)) allow it to load plug-ins made by other companies, which hosts need under the hardened runtime.
+The next build signs the app with the hardened runtime, sends it to Apple for notarization (usually a few minutes), and staples the ticket to the app. Then delete the `.p12` and `.p8` files from your Downloads, or keep them somewhere safe. The app's entitlements ([app/VSLFinesse.entitlements](app/VSLFinesse.entitlements)) allow it to load plug-ins made by other companies, which hosts need under the hardened runtime.
 
 ## Changes
 
@@ -141,7 +141,7 @@ See [CHANGELOG.md](CHANGELOG.md). Versions follow [semantic versioning](https://
 engine/   the performance engine: plain C++, no dependencies
 io/       MIDI files and JSON (JUCE)
 app/      the Mac app: tracks, plug-in hosting, playback, UI (JUCE)
-cli/      vslp-finesse command line tool
+cli/      vsl-finesse command line tool
 tests/    unit tests
 profiles/ built-in instrument profiles
 docs/     design notes

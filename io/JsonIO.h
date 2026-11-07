@@ -4,13 +4,13 @@
 
 #include <juce_core/juce_core.h>
 
-#include <vslp/Engine.h>
-#include <vslp/Profile.h>
-#include <vslp/Settings.h>
+#include <vslf/Engine.h>
+#include <vslf/Profile.h>
+#include <vslf/Settings.h>
 
 #include <string>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 juce::var profileToJson (const InstrumentProfile&);
@@ -29,4 +29,4 @@ std::vector<Marking> markingsFromJson (const juce::var&);
 bool loadSettings (const juce::File&, Settings& inOut, std::string& error);
 bool saveSettings (const Settings&, const juce::File&, std::string& error);
 
-} // namespace vslp::io
+} // namespace vslf::io

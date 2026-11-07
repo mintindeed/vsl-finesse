@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace vslp
+namespace vslf
 {
 
 Part ingest (const Part& input, const InstrumentProfile& profile, const Settings& settings, Report& report)
@@ -92,4 +92,4 @@ Part ingest (const Part& input, const InstrumentProfile& profile, const Settings
     return out;
 }
 
-} // namespace vslp
+} // namespace vslf

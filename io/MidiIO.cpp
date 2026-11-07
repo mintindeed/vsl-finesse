@@ -4,7 +4,7 @@
 #include <cmath>
 #include <set>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 namespace
@@ -254,4 +254,4 @@ juce::File finessedFileFor (const juce::File& original)
     return original.getSiblingFile (original.getFileNameWithoutExtension() + " (Finessed).mid");
 }
 
-} // namespace vslp::io
+} // namespace vslf::io
