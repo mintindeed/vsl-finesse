@@ -6,7 +6,7 @@ It never adds or changes articulation keyswitches. Keyswitches in your file are 
 
 ## Getting the app
 
-**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Performer-macOS** at the bottom. Unzip it and move **VSL Performer.app** to Applications. The build isn't notarized, so the first time you open it, right-click the app and choose **Open**.
+**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Performer-macOS** at the bottom. Unzip it and move **VSL Performer.app** to Applications. Once [signed builds](#signed-builds) are set up, it opens with a double-click. Until then, right-click the app and choose **Open** the first time.
 
 **Or build it yourself** (needs the Xcode Command Line Tools and CMake):
 
@@ -108,6 +108,24 @@ Built-in profiles live in [`profiles/`](profiles). Your edits are saved as JSON 
 ```
 
 Synchron presets switch articulations with one key per level of the articulation tree: by default each octave is one level (C1-B1 picks the articulation, C2-B2 the type), and the current articulation is the combination of the latest key on each level. `level` overrides that for a key.
+
+## Signed builds
+
+GitHub can sign every build with a Developer ID certificate and have Apple notarize it, so it opens with a double-click on any Mac. It needs a paid Apple Developer account, and five repository secrets. Until all of them are set, builds are unsigned (right-click > **Open** the first time).
+
+1. **Developer ID Application certificate** (only the Account Holder can create one): Xcode > Settings > Accounts > your team > **Manage Certificates...** > **+** > **Developer ID Application**. Then in Keychain Access, find "Developer ID Application: *your name* (*team ID*)", right-click > **Export...**, and save it as a `.p12` file with a password.
+2. **App Store Connect API key** (for notarization): on [App Store Connect](https://appstoreconnect.apple.com), go to Users and Access > Integrations > App Store Connect API > **Team Keys** and generate a key with **Developer** access. Download the `.p8` file (you can only download it once) and note its **Key ID** and the **Issuer ID** shown above the list.
+3. **Add the secrets** to the repository: on GitHub, Settings > Secrets and variables > Actions > **New repository secret**. Or from Terminal in the project folder:
+
+   ```bash
+   base64 -i DeveloperID.p12 | gh secret set MACOS_CERTIFICATE_P12_BASE64
+   gh secret set MACOS_CERTIFICATE_PASSWORD          # paste the .p12 password when asked
+   base64 -i AuthKey_XXXXXXXXXX.p8 | gh secret set NOTARY_API_KEY_P8_BASE64
+   gh secret set NOTARY_API_KEY_ID                   # e.g. XXXXXXXXXX
+   gh secret set NOTARY_API_ISSUER_ID                # the Issuer ID
+   ```
+
+The next build signs the app with the hardened runtime, sends it to Apple for notarization (usually a few minutes), and staples the ticket to the app. Then delete the `.p12` and `.p8` files from your Downloads, or keep them somewhere safe. The app's entitlements ([app/VSLPerformer.entitlements](app/VSLPerformer.entitlements)) allow it to load plug-ins made by other companies, which hosts need under the hardened runtime.
 
 ## Changes
 

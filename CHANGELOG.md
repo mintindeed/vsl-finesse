@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-07
+
+### Added
+- Signed and notarized macOS builds: once the Developer ID secrets are added to the repository (see README, "Signed builds"), downloaded builds open with a double-click, with no trip to System Settings > Privacy & Security. Without the secrets, builds stay unsigned as before.
+
 ## [0.3.0] - 2026-11-07
 
 ### Added
@@ -57,7 +62,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Built-in instrument profiles for common orchestral instruments.
 - Unit tests and a GitHub Actions build that produces a downloadable macOS app.
 
-[Unreleased]: https://github.com/mintindeed/vsl-performer/compare/e014f4e...HEAD
+[Unreleased]: https://github.com/mintindeed/vsl-performer/compare/main...HEAD
+[0.3.1]: https://github.com/mintindeed/vsl-performer/commits/main
 [0.3.0]: https://github.com/mintindeed/vsl-performer/commit/e014f4e
 [0.2.0]: https://github.com/mintindeed/vsl-performer/commit/b9d4962
 [0.1.1]: https://github.com/mintindeed/vsl-performer/commit/a21ecf6

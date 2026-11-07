@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- VSL Performer hosts Audio Unit / VST3 instruments (Synchron Player)
+         made by other companies. Under the hardened runtime that notarization
+         requires, an app can only load code signed by another team if library
+         validation is off. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Some plug-ins (and their copy protection) generate code at run time. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+</dict>
+</plist>
