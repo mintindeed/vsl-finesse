@@ -65,9 +65,18 @@ struct Context
 
     bool isShort (size_t note) const { return info[note].duration * 1000.0 < settings.shortNoteMs; }
 
+    // How the player says this note's articulation picks its layers. The
+    // Velocity preset type overrides it: that's the user's choice.
+    Articulation::Layers layersOf (size_t note) const
+    {
+        return settings.presetType == PresetType::Velocity ? Articulation::Layers::Unknown : articulationOf (note).layers;
+    }
+
     // Does CC1 drive this note's dynamic layers?
     bool crossfades (size_t note) const
     {
+        if (const auto l = layersOf (note); l != Articulation::Layers::Unknown)
+            return l == Articulation::Layers::Crossfade;
         switch (settings.presetType)
         {
             case PresetType::VelXF:        return true;
@@ -81,6 +90,8 @@ struct Context
     // (it may select something else, such as an attack variant).
     bool velocityIsDynamic (size_t note) const
     {
+        if (const auto l = layersOf (note); l != Articulation::Layers::Unknown)
+            return l == Articulation::Layers::Velocity;
         switch (settings.presetType)
         {
             case PresetType::VelXF:        return false;

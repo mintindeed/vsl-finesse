@@ -22,7 +22,11 @@ namespace vslf::io
     {
         juce::String path;       // empty: no preset loaded
         juce::String instrument; // "Violin I"
-        std::optional<vslf::PresetType> type; // from the preset folder, if it's one of the three
+        // From the preset folder, if it's one of the three. Presets in other
+        // folders or none (Harp, "VelXF rolls - MOD") get it from the state:
+        // Velocity if the preset doesn't crossfade its layers, else VelXF sus
+        // (each articulation's own layers then decide).
+        std::optional<vslf::PresetType> type;
     };
     SynchronPreset describeSynchronPreset (const juce::String& path);
 
@@ -36,6 +40,10 @@ namespace vslf::io
     {
         juce::StringArray path; // {"Long notes", "Marcato"}
         std::vector<int> keys;  // one key per level, MIDI note numbers
+        // Velocity if the preset doesn't crossfade layers or all its patches
+        // here follow velocity; Crossfade otherwise; Unknown if the state
+        // doesn't say.
+        vslf::Articulation::Layers layers = vslf::Articulation::Layers::Unknown;
         juce::String name() const { return path.joinIntoString (" > "); }
     };
     struct SynchronArticulations
@@ -56,9 +64,12 @@ namespace vslf::io
     // meet the engine's octave levels for other keys.
     constexpr int treeLevelBase = 100;
 
-    // The profile with the tree's keys (at their tree levels) and names
-    // added. The tree wins over the profile's own entries for the same keys.
-    vslf::InstrumentProfile withTree (vslf::InstrumentProfile, const std::vector<SynchronArticulation>&);
+    // The profile with the tree's keys (at their tree levels), names and
+    // dynamic layers added. The tree wins over the profile's own entries for
+    // the same keys. startKeys (the player's articulation before any
+    // keyswitch) gives the articulation before the first keyswitch.
+    vslf::InstrumentProfile withTree (vslf::InstrumentProfile, const std::vector<SynchronArticulation>&,
+                                      const std::vector<int>& startKeys = {});
 
     // Picks with their keys looked up again by name in the loaded preset's
     // tree, since the same keys can mean another articulation in another

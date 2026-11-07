@@ -23,6 +23,17 @@ struct Articulation
     // Moves note-ons earlier (negative) or later (positive) to compensate for
     // slow-speaking samples. 0 = no change.
     double attackOffsetMs = 0.0;
+
+    // How the player picks this articulation's dynamic layers, when it says
+    // so (Synchron presets do, per patch). Unknown: the preset type and the
+    // note's length decide.
+    enum class Layers
+    {
+        Unknown,
+        Velocity,  // velocity picks the layer
+        Crossfade  // CC1 crossfades the layers; velocity is kept as written
+    };
+    Layers layers = Layers::Unknown;
 };
 
 // A keyswitch pitch and the level of the player's articulation tree it

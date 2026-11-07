@@ -226,6 +226,17 @@ namespace
         return Bytes (p, p + m.getSize());
     }
 
+    // The preset's velXFadeEnabled: whether it crossfades dynamic layers
+    // (with CC1 in the MOD presets) or lets velocity pick them. Nothing if
+    // the state doesn't say.
+    std::optional<bool> crossfadingOf (const juce::var& stateJson)
+    {
+        const auto v = stateJson["data"]["parameters"]["velXFadeEnabled"];
+        if (v.isVoid() || v.isUndefined())
+            return std::nullopt;
+        return (double) v >= 0.5;
+    }
+
     std::optional<Bytes> pluginStateJsonBytes (const BinaryPlist& plist)
     {
         if (const auto index = plist.topValue ("PluginState"))
@@ -334,7 +345,11 @@ std::optional<SynchronPreset> synchronPreset (const juce::MemoryBlock& state)
     const auto parsed = juce::JSON::parse (*json);
     if (! parsed["data"].isObject())
         return std::nullopt;
-    return describeSynchronPreset (parsed["data"]["currentPreset"].toString());
+    auto preset = describeSynchronPreset (parsed["data"]["currentPreset"].toString());
+    if (! preset.type && preset.path.isNotEmpty())
+        if (const auto crossfading = crossfadingOf (parsed))
+            preset.type = *crossfading ? vslf::PresetType::VelXFSustain : vslf::PresetType::Velocity;
+    return preset;
 }
 
 // --- Articulation tree --------------------------------------------------------
@@ -342,8 +357,10 @@ std::optional<SynchronPreset> synchronPreset (const juce::MemoryBlock& state)
 // A node with children is a level of the tree: its `switchControl` says what
 // picks the child. 0 is nothing, 1-128 a keyswitch (note + 1, the first child's
 // key; with `whiteNoteSwitch` the children use white keys only), then the 128
-// controllers, then velocity and other sources (the Marcato node's Attack
-// level is 257: velocity picks the sustain or staccato attack).
+// controllers, then from 257 the node crossfade slots (257 is slot 0,
+// nodeXFade0, 258 slot 1). What drives a slot is set per preset in
+// paramControl.mappings: Marcato's Attack slot is velocity in the VelXF
+// presets but CC1 in the Velocity ones.
 // `currentNodeIndex` is the child that's selected. Only key-switched levels
 // are walked: a node below which no key picks anything is one articulation.
 namespace
@@ -391,14 +408,48 @@ namespace
         return key;
     }
 
+    // Patches with velXFadeMode 1 follow velocity even when the preset
+    // crossfades (VelXF sus: Staccato, Detache; timpani: hits).
+    void patchModes (const juce::var& node, bool& anyVelocity, bool& anyCrossfade)
+    {
+        if (node["nodes"].size() > 0)
+        {
+            for (const auto& child : *node["nodes"].getArray())
+                patchModes (child, anyVelocity, anyCrossfade);
+            return;
+        }
+        if (! hasPatch (node))
+            return;
+        if ((int) node["parameters"]["velXFadeMode"] == 1)
+            anyVelocity = true;
+        else
+            anyCrossfade = true;
+    }
+
+    using Layers = vslf::Articulation::Layers;
+
+    // `crossfading`: the preset's velXFadeEnabled (nothing if the state lacks it).
+    Layers layersOf (const juce::var& node, std::optional<bool> crossfading)
+    {
+        if (! crossfading)
+            return Layers::Unknown;
+        if (! *crossfading)
+            return Layers::Velocity;
+        bool anyVelocity = false, anyCrossfade = false;
+        patchModes (node, anyVelocity, anyCrossfade);
+        // A crossfade between patches (Marcato: sustain + staccato attack)
+        // crossfades if any of them does.
+        return anyCrossfade ? Layers::Crossfade : anyVelocity ? Layers::Velocity : Layers::Unknown;
+    }
+
     void collect (const juce::var& node, juce::StringArray path, std::vector<int> keys,
-                  std::vector<SynchronArticulation>& out)
+                  std::optional<bool> crossfading, std::vector<SynchronArticulation>& out)
     {
         const auto first = firstKey (node);
         if (! first)
         {
             if (! path.isEmpty() && hasPatch (node))
-                out.push_back ({ path, keys });
+                out.push_back ({ path, keys, layersOf (node, crossfading) });
             return;
         }
         const auto* children = node["nodes"].getArray();
@@ -412,7 +463,7 @@ namespace
             childPath.add (child["title"].toString().trim());
             auto childKeys = keys;
             childKeys.push_back (key);
-            collect (child, childPath, childKeys, out);
+            collect (child, childPath, childKeys, crossfading, out);
         }
     }
 }
@@ -423,7 +474,7 @@ SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson)
     const auto root = stateJson["data"]["custom"]["sampler"]["rootNode"];
     if (! root.isObject())
         return result;
-    collect (root, {}, {}, result.choices);
+    collect (root, {}, {}, crossfadingOf (stateJson), result.choices);
 
     // Follow the selection down the key-switched levels.
     auto node = root;
@@ -452,7 +503,8 @@ std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBl
     return synchronArticulationsFromJson (parsed);
 }
 
-vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::vector<SynchronArticulation>& tree)
+vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::vector<SynchronArticulation>& tree,
+                                  const std::vector<int>& startKeys)
 {
     if (tree.empty())
         return profile;
@@ -476,7 +528,10 @@ vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::ve
         mappings.erase (std::remove_if (mappings.begin(), mappings.end(),
                                         [&] (const vslf::ArticulationMapping& m) { return sorted (m.keys) == k; }),
                         mappings.end());
-        mappings.push_back ({ a.keys, { a.name().toStdString(), 0.0 } });
+        vslf::Articulation articulation { a.name().toStdString(), 0.0, a.layers };
+        mappings.push_back ({ a.keys, articulation });
+        if (! startKeys.empty() && sorted (startKeys) == k)
+            profile.defaultArticulation = articulation;
     }
     return profile;
 }

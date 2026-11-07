@@ -576,3 +576,39 @@ TEST_CASE ("picks switch back by the profile's levels, not by octave")
     CHECK (keyswitchPitchesAt (r, 4 * 480 - 240, 4 * 480 + 1) == std::vector<int> { 36 });
     CHECK (keyswitchPitchesAt (r, 8 * 480 - 240, 8 * 480 + 1) == std::vector<int> { 25 });
 }
+
+TEST_CASE ("an articulation's own layers beat the note-length rule")
+{
+    // Like Synchron's VelXF sus Violin I: Detache (C0 + D1) follows velocity
+    // even when long; Sustain (C#0 + C1) crossfades even when short.
+    auto profile = violinProfile();
+    profile.articulations = { { { 24, 38 }, { "Short notes > Detache", 0.0, Articulation::Layers::Velocity } },
+                              { { 25, 36 }, { "Long notes > Sustain", 0.0, Articulation::Layers::Crossfade } } };
+    Settings s;
+    s.presetType = PresetType::VelXFSustain;
+    s.humanizeTimingMs = 0.0;
+
+    std::vector<Note> notes;
+    for (int i = 0; i < 4; ++i)
+        notes.push_back (note (i * 960, 960, 72 + i, 80)); // long, Detache
+    for (int i = 0; i < 8; ++i)
+        notes.push_back (note (3840 + i * 240, 100, 72 + (i % 3), 80)); // short, Sustain
+    std::vector<Note> ks = { note (0, 30, 24), note (0, 30, 38), note (3840 - 20, 10, 25), note (3840 - 20, 10, 36) };
+
+    const auto out = finesse (makePart (notes, ks), profile, s).part.notes;
+    REQUIRE (out.size() == 12);
+    bool longsShaped = false;
+    for (size_t i = 0; i < 4; ++i)
+        longsShaped |= out[i].velocity != 80;
+    CHECK (longsShaped);
+    for (size_t i = 4; i < 12; ++i)
+        CHECK (out[i].velocity == 80);
+
+    // The Velocity preset type is the user's choice and wins.
+    s.presetType = PresetType::Velocity;
+    const auto v = finesse (makePart (notes, ks), profile, s);
+    bool shortsShaped = false;
+    for (size_t i = 4; i < 12; ++i)
+        shortsShaped |= v.part.notes[i].velocity != 80;
+    CHECK (shortsShaped);
+}

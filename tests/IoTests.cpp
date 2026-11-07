@@ -7,6 +7,8 @@
 #include <MidiIO.h>
 #include <SynchronState.h>
 
+#include "SynchronTrees.h"
+
 using namespace vslf;
 using namespace vslf::test;
 
@@ -355,4 +357,108 @@ TEST_CASE ("Synchron Player state: a three-level tree gives three keys per artic
     CHECK (a.choices[1].keys == std::vector<int> { 24, 36, 49 });
     CHECK (a.choices[2].keys == std::vector<int> { 24, 37 });
     CHECK (a.currentKeys == std::vector<int> { 24, 36, 49 });
+}
+
+// --- Real Special Edition trees (tests/SynchronTrees.h) ---------------------------
+namespace
+{
+    io::SynchronArticulations treeOf (const char* json) { return io::synchronArticulationsFromJson (juce::JSON::parse (json)); }
+
+    const io::SynchronArticulation* find (const io::SynchronArticulations& a, const char* name)
+    {
+        for (const auto& c : a.choices)
+            if (c.name() == name)
+                return &c;
+        return nullptr;
+    }
+
+    using Layers = Articulation::Layers;
+}
+
+TEST_CASE ("Violin I VelXF sus: white-key Type level, and per-patch layers")
+{
+    const auto a = treeOf (trees::violinVelXFSus);
+    juce::StringArray names;
+    for (const auto& c : a.choices)
+        names.add (c.name());
+    CHECK (names.joinIntoString (", ")
+           == "Short notes > Staccato, Short notes > Detache, Long notes > Sustain, Long notes > Marcato, "
+              "Long notes > XF tremolo, Legato > Legato, Legato > Portamento, Dynamics > Sforzato, "
+              "Dynamics > Sfz XF tremolo, Tremolo > Tremolo, Tremolo > Trem. marcato, Pizzicato");
+
+    // Short notes uses white keys: Detache is D1 (38), not C#1.
+    CHECK (find (a, "Short notes > Detache")->keys == std::vector<int> { 24, 38 });
+    CHECK (find (a, "Long notes > Marcato")->keys == std::vector<int> { 25, 37 });
+    CHECK (find (a, "Pizzicato")->keys == std::vector<int> { 29 });
+    CHECK (a.currentKeys == std::vector<int> { 25, 38 }); // Long notes > XF tremolo
+
+    // Staccato and Detache follow velocity at any length; sustained patches crossfade.
+    CHECK (find (a, "Short notes > Staccato")->layers == Layers::Velocity);
+    CHECK (find (a, "Short notes > Detache")->layers == Layers::Velocity);
+    CHECK (find (a, "Long notes > Sustain")->layers == Layers::Crossfade);
+    CHECK (find (a, "Long notes > Marcato")->layers == Layers::Crossfade);
+}
+
+TEST_CASE ("Violin I PLUS Velocity: more articulations, all following velocity")
+{
+    const auto a = treeOf (trees::violinPlusVelocity);
+    CHECK (a.choices.size() == 31);
+    CHECK (find (a, "Tremolo + Trills > Fast rep. 190")->keys == std::vector<int> { 28, 42 });
+    CHECK (find (a, "Sul ponticello > Tremolo")->keys == std::vector<int> { 31, 39 });
+    CHECK (find (a, "Custom > Custom 1") == nullptr);
+    for (const auto& c : a.choices)
+        CHECK (c.layers == Layers::Velocity);
+
+    // Same name, other keys than in the VelXF sus preset: Detache is a third
+    // Short notes patch here, after Detache short.
+    CHECK (find (a, "Short notes > Detache")->keys == std::vector<int> { 24, 38 });
+    CHECK (find (a, "Short notes > Detache short")->keys == std::vector<int> { 24, 37 });
+    CHECK (find (a, "Pizzicato + Legno > Pizzicato")->keys == std::vector<int> { 29, 36 });
+}
+
+TEST_CASE ("Double basses VelXF: keyswitches above the range")
+{
+    const auto a = treeOf (trees::doubleBassesVelXF);
+    CHECK (find (a, "Short notes > Staccato")->keys == std::vector<int> { 84, 96 });
+    CHECK (find (a, "Short notes > Detache")->keys == std::vector<int> { 84, 98 });
+    CHECK (find (a, "Long notes > Marcato")->keys == std::vector<int> { 85, 97 });
+    CHECK (find (a, "Pizzicato")->keys == std::vector<int> { 89 });
+    for (const auto& c : a.choices)
+        CHECK (c.layers == Layers::Crossfade);
+
+    // The basses' range (Logic's B-1 to A3) leaves the keys as keyswitches.
+    const auto builtins = io::builtinProfiles();
+    const auto basses = std::find_if (builtins.begin(), builtins.end(), [] (const InstrumentProfile& p) { return p.id == "basses"; });
+    REQUIRE (basses != builtins.end());
+    const auto profile = io::withTree (*basses, a.choices);
+    CHECK (profile.isKeyswitch (84));
+    CHECK (profile.levelOf (84) != profile.levelOf (96));
+}
+
+TEST_CASE ("Timpani VelXF rolls and Harp: one level, and the preset type from the state")
+{
+    const auto timpani = treeOf (trees::timpaniVelXFRolls);
+    REQUIRE (timpani.choices.size() == 3);
+    CHECK (find (timpani, "Single hits")->layers == Layers::Velocity);
+    CHECK (find (timpani, "Secco")->layers == Layers::Velocity);
+    CHECK (find (timpani, "Rolls")->layers == Layers::Crossfade);
+    CHECK (find (timpani, "Rolls")->keys == std::vector<int> { 26 });
+
+    const auto harp = treeOf (trees::harp);
+    REQUIRE (harp.choices.size() == 2);
+    CHECK (find (harp, "Regular")->keys == std::vector<int> { 21 }); // Logic's A-1, below the harp's range
+    CHECK (find (harp, "Harmonics")->keys == std::vector<int> { 22 });
+    CHECK (find (harp, "Harmonics")->layers == Layers::Velocity);
+    CHECK (harp.currentKeys == std::vector<int> { 22 });
+
+    // No preset folder in the path: the state decides.
+    CHECK_FALSE (io::describeSynchronPreset ("Studio Special Editions/06 Plucked instruments/01 Harp I").type.has_value());
+}
+
+TEST_CASE ("the start articulation names the notes before the first keyswitch")
+{
+    const auto a = treeOf (trees::violinVelXFSus);
+    const auto profile = io::withTree (InstrumentProfile {}, a.choices, { 24, 36 });
+    CHECK (profile.defaultArticulation.name == "Short notes > Staccato");
+    CHECK (profile.defaultArticulation.layers == Layers::Velocity);
 }
