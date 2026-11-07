@@ -26,11 +26,14 @@ These are the design decisions everything else follows. A contribution that work
 - **The beat never moves.** Pauses come out of the end of the earlier note, and keyswitches and controllers arrive just before their note. The finessed part stays in time with the rest of the song.
 - **The user's data wins.** Keyswitches in the file are kept (except where the user picked an articulation). Controllers the user chose to keep are never overwritten, except the app's own CC1/CC11 where the user lets them be. A profile picked by hand isn't overruled until another preset is loaded.
 - **Repeatable.** The same file and settings always give the same result. All variation comes from the seed (`detail::noise`).
-- **Synchron Player first.** The app is made for the Synchron Player Studio Special Editions, using their Precision presets. Other instruments can play the result, but nothing is written that only makes sense for Synchron unless the app knows Synchron is there.
+- **Synchron Player first.** The app is made for Vienna Synchron Player and the SYNCHRON-ized Special Edition, using their Precision presets (listed under "Studio Special Editions" in Synchron Player). Other instruments can play the result, but nothing is written that only makes sense for Synchron unless the app knows Synchron is there.
 - **A dependency-free, tested engine.** The engine (`engine/`) is plain C++ with no dependencies, and every behaviour change comes with a unit test.
 
 ## What's welcome
 
+- **Other VSL products.** The app is developed with the SYNCHRON-ized Special Edition Vol. 1 and Vol. 2 and the free Big Bang Orchestra collections, because that's what its author owns. Testing it with other Synchron libraries, the PLUS volumes, the paid Big Bang Orchestra collections or Vienna Instruments, and making it work well with them, is very welcome. Reading what each preset offers (rather than adding a table for each product) usually gets furthest.
+- **Other DAWs.** Only Logic Pro has been tried. Reports and fixes for other DAWs are welcome: note-name conventions, how the exported MIDI file is read, getting it back onto a track.
+- **Remapping controllers.** Dynamics go to CC1 and expression to CC11, as the Special Editions' Precision presets expect (an instrument profile's `dynamicsCC` and `expressionCC` can change them, but only by editing its JSON). The app doesn't follow a preset whose controls were reassigned to other CCs, translate to a template's own controller numbers, or do any other remapping. Requests and contributions for this are welcome.
 - **Bug reports**, with the MIDI file if you can share it, the Synchron preset you used (its path, e.g. "02 VelXF - MOD/01 Violin I - VelXF"), and what you heard against what you expected.
 - **Synchron presets the app hasn't seen.** On a track with the preset loaded, use **Save instrument details to Desktop** in the instrument menu and attach the file. New trees (a third key-switched level, other Dimension Controls, other libraries) are exactly how the app learns; each becomes a test fixture.
 - **Better performance rules**, with the musical reasoning and a test. Before/after audio is the best argument.
