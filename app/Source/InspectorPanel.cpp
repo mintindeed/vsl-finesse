@@ -415,6 +415,8 @@ private:
         if (r.controllersRemoved > 0)
             s << ", " << r.controllersRemoved << " of the file's removed";
         s << "\n";
+        for (const auto& b : r.blends)
+            s << juce::String (b) << "\n";
         if (r.legatoConnections > 0)
             s << r.legatoConnections << " connected notes\n";
         if (r.breaths > 0 || r.pauses > 0)

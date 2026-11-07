@@ -675,3 +675,130 @@ TEST_CASE ("kept controllers: the file's CC1 and CC11 win when the app's replaci
     CHECK (count (removed.part, 20) == 0);
     CHECK (count (removed.part, 1) > 2);
 }
+
+// --- Crossfaded articulations -----------------------------------------------------
+namespace
+{
+InstrumentProfile blendProfile (Articulation::Blend::Kind kind, int controller, double centre, Articulation::Layers layers)
+{
+    auto p = violinProfile();
+    p.defaultArticulation.name = "Marcato";
+    p.defaultArticulation.layers = layers;
+    p.defaultArticulation.blend = { kind, controller, centre, "Attack" };
+    return p;
+}
+
+// Four bars of quarter notes, a rest, then four fast notes.
+std::vector<Note> accentLine()
+{
+    std::vector<Note> v;
+    for (int i = 0; i < 16; ++i)
+        v.push_back (note (i * 480, 400, 67 + (i % 4), 90));
+    for (int i = 0; i < 4; ++i)
+        v.push_back (note (9600 + i * 96, 90, 72, 90)); // sixteenth-note triplets at 120 bpm
+    return v;
+}
+} // namespace
+
+TEST_CASE ("an added layer (Marcato's attack) is an accent: more bite on strong beats and after rests, less in fast notes")
+{
+    Settings s;
+    s.presetType = PresetType::VelXF;
+    s.humanizeTimingMs = 0.0;
+    const auto profile = blendProfile (Articulation::Blend::Kind::AddedLayer, -1, 60.0 / 127.0, Articulation::Layers::Crossfade);
+    const auto r = finesse (makePart (accentLine()), profile, s);
+    const auto& out = r.part.notes;
+    REQUIRE (out.size() == 20);
+
+    CHECK (out[4].velocity > out[5].velocity);   // bar 2 downbeat vs beat 2
+    CHECK (out[16].velocity > out[18].velocity); // after the rest vs in the run
+    for (const auto& n : out)
+    {
+        CHECK (n.velocity >= 10);
+        CHECK (n.velocity <= 117);
+    }
+    REQUIRE (r.report.blends.size() == 1);
+    CHECK (r.report.blends[0] == "Marcato: Attack per note (velocity)");
+
+    // Character sets the range.
+    auto spread = [&] (double intensity) {
+        auto st = s;
+        st.intensity = intensity;
+        int lo = 127, hi = 0;
+        for (const auto& n : finesse (makePart (accentLine()), profile, st).part.notes)
+        {
+            lo = std::min (lo, n.velocity);
+            hi = std::max (hi, n.velocity);
+        }
+        return hi - lo;
+    };
+    CHECK (spread (0.3) < spread (1.0));
+}
+
+TEST_CASE ("an added layer on a CC is set before each note starts")
+{
+    Settings s;
+    s.presetType = PresetType::Velocity; // Dim.Ctrl/A is CC1 in the Velocity presets
+    const auto profile = blendProfile (Articulation::Blend::Kind::AddedLayer, 1, 60.0 / 127.0, Articulation::Layers::Velocity);
+    const auto r = finesse (makePart (accentLine()), profile, s);
+    const auto cc1 = controllersFor (r.part, 1);
+    REQUIRE (cc1.size() >= 5);
+
+    // Each note starts with its own value, set after the previous note began.
+    const auto& notes = r.part.notes;
+    for (size_t i = 1; i < notes.size(); ++i)
+        CHECK (controllerAt (r.part, 1, notes[i].start) >= 0);
+    for (const auto& c : cc1)
+        for (size_t i = 0; i < notes.size(); ++i)
+            if (c.tick < notes[i].start && (i == 0 || c.tick > notes[i - 1].start))
+                CHECK (c.tick >= notes[i].start - r.part.tempo.ticksForMs ((double) notes[i].start, 20.0));
+}
+
+TEST_CASE ("blends never fight the dynamics or the user's own lines")
+{
+    Settings s;
+    s.presetType = PresetType::VelXF; // CC1 is the dynamics here
+    auto profile = blendProfile (Articulation::Blend::Kind::AddedLayer, 1, 0.5, Articulation::Layers::Crossfade);
+    auto r = finesse (makePart (accentLine()), profile, s);
+    CHECK (r.report.blends.empty());
+
+    // Velocity is the dynamic in Velocity presets: a velocity blend steps aside.
+    s.presetType = PresetType::Velocity;
+    profile = blendProfile (Articulation::Blend::Kind::AddedLayer, -1, 0.5, Articulation::Layers::Velocity);
+    CHECK (finesse (makePart (accentLine()), profile, s).report.blends.empty());
+
+    // A CC20 line the user kept from the file wins over the app's.
+    s.presetType = PresetType::VelXF;
+    s.keepControllers = true;
+    profile = blendProfile (Articulation::Blend::Kind::Crossfade, 20, 0.0, Articulation::Layers::Crossfade);
+    auto part = makePart (accentLine());
+    part.controllers = { { 0, 20, 33, 1 } };
+    r = finesse (part, profile, s);
+    REQUIRE (controllersFor (r.part, 20).size() == 1);
+    CHECK (controllerAt (r.part, 20, 5000) == 33);
+}
+
+TEST_CASE ("a crossfade (XF tremolo) leans in towards the phrase peak and back")
+{
+    Settings s;
+    s.presetType = PresetType::VelXF;
+    s.humanizeTimingMs = 0.0;
+    const auto profile = blendProfile (Articulation::Blend::Kind::Crossfade, 20, 0.0, Articulation::Layers::Crossfade);
+
+    // One long phrase of half notes rising to a peak, then falling.
+    std::vector<Note> notes;
+    const int pitches[] = { 60, 62, 64, 67, 72, 69, 65, 62, 60 };
+    for (int i = 0; i < 9; ++i)
+        notes.push_back (note (i * 960, 940, pitches[i], 80));
+    const auto r = finesse (makePart (notes), profile, s);
+    REQUIRE (r.phrases.size() == 1);
+
+    const auto& out = r.part.notes;
+    const int start = controllerAt (r.part, 20, out[0].start);
+    const int peak = controllerAt (r.part, 20, out[4].start + 400);
+    const int end = controllerAt (r.part, 20, out[8].end - 10);
+    CHECK (start <= 15);
+    CHECK (peak > start + 20);
+    CHECK (end < peak);
+    CHECK (r.report.blends[0] == "Marcato: Attack follows the phrases (CC20)");
+}

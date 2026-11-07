@@ -34,7 +34,7 @@ You can change your answers in System Settings → Privacy & Security.
 3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window in the **Precision** view, where you load your Special Edition preset. Use the Precision presets: the Flow presets assign their controllers differently, so the dynamics the app writes may not land where it expects. Once you load a preset, the instrument profile and the Synchron preset folder (step 4) follow it, e.g. "02 VelXF - MOD/01 Violin I - VelXF" sets Violins and VelXF - MOD. You can still change either by hand; they only follow Synchron again when you load a different preset. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
 4. **Check the Synchron preset folder** your preset came from (right panel; it's set for you when you load a Special Edition preset in Synchron): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. Presets outside these folders (e.g. Harp, or the timpani's VelXF rolls) get the closest one: Velocity if the preset lets velocity pick its dynamic layers, otherwise VelXF sus. That one choice decides how dynamics are written:
    - **VelXF sus - MOD:** long notes crossfade with CC1, short notes follow velocity
-   - **VelXF - MOD:** every note crossfades with CC1. Velocities are left exactly as written, because in these presets velocity can pick an attack (e.g. Marcato's sustain/staccato attack)
+   - **VelXF - MOD:** every note crossfades with CC1. Velocities are left as written, except where velocity drives a crossfaded articulation such as Marcato's attack (see How it performs)
    - **Velocity:** velocity carries the dynamics, and no CC1 is written
 
    With a Synchron preset loaded, the app also knows how each of its articulations picks its dynamic layers, and follows that over the note-length rule: in VelXF sus, Staccato and Detache follow velocity at any length and Sustain crossfades even for short notes; on timpani (VelXF rolls), hits follow velocity and rolls crossfade with CC1. **Velocity** always means velocity for every note.
@@ -79,6 +79,10 @@ These go beyond the KTH rules, for the things orchestral players physically have
 - **Phrase lifts (everyone):** where a phrase ends without a written rest, the last note is shortened slightly, the way any player separates phrases.
 - **Small timing and velocity variation:** note starts move by a few milliseconds and velocities by a few steps. It's repeatable: the same file and settings always give the same result. **New variation** gives a different, equally repeatable version.
 - **Connected notes overlap slightly**, which triggers legato transitions in legato patches.
+- **Crossfaded articulations:** some articulations blend two sounds with a controller Synchron calls a Dimension Control. Choosing Marcato or XF tremolo is the composer's decision (a keyswitch in your file, or the Articulation picker), but how much of the blend each note gets is the player's, so the app shapes it. It reads which kind each one is from the preset, so it needs no list of articulations:
+  - **An added layer** (Marcato, Trem. marcato, Harm. marcato: the sustain always plays and a staccato attack is added on top) is an accent, one value per note: more bite on strong beats, at phrase starts, after rests, on upward leaps, in louder passages and on notes your file plays louder than their neighbours (accents from a notation export); less in fast or repeated notes. Its centre is the preset's own setting.
+  - **A crossfade** (XF tremolo, Sfz/Fp XF tremolo: one sound turns into another) is colour, a smooth line that leans into the second sound as a phrase builds to its peak and eases back after. Short phrases barely move.
+  - **Character** sets how far both range. The value goes wherever the preset sends the control: the note's velocity in the VelXF presets, CC1 in the Velocity presets, CC20 for the tremolo crossfades. The app never writes it over its own dynamics, over velocity where velocity is the dynamic, or over a controller you kept from your file. The Report lists what was shaped.
 
 The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pauses always come out of the end of the earlier note, so the beat never moves and the part stays in time with the rest of your song.
 
@@ -90,6 +94,7 @@ The breaths, bow crossings and phrase lifts are the **Human pauses** switch. Pau
 | Phrases | Rests, long notes and (for winds/brass) breath length split the line into phrases. Each phrase gets a peak, chosen from its high and long notes. |
 | Dynamics | Your markings (pp-ff, cresc., dim.) or the file's velocities set the base level. Phrase arch, high loud and duration contrast shape it into one smooth CC1 line through the whole part. |
 | Velocity | Where velocity is the dynamic (Velocity presets, short notes in VelXF sus): follows the dynamic line, plus beat stress and a little variation. Otherwise left as written. |
+| Crossfaded articulations | Marcato's attack gets more or less bite per note; XF tremolo leans into the tremolo towards each phrase's peak. |
 | Long notes | A gentle swell inside long notes (CC1, or CC11 in Velocity presets), and the last note of a phrase tapers (CC1 and CC11). |
 | Timing | Small timing variation, slight overlaps for connected notes, gaps for repeated notes, and the human pauses. Keyswitches always stay ahead of the note they switch. |
 

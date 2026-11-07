@@ -44,6 +44,9 @@ public:
     // back to after a picked passage, where the file has no keyswitch).
     std::vector<vslf::io::SynchronArticulation> synchronArticulations;
     std::vector<int> articulationStartKeys;
+    // The preset's Dimension Control values (slot -> 0..1) when it was
+    // loaded: the centre of each crossfaded articulation.
+    std::map<int, double> dimensionControls;
 
     struct Audio
     {

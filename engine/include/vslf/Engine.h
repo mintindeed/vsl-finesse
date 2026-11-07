@@ -100,6 +100,8 @@ struct Report
     int breaths = 0;     // wind/brass breaths added
     int pauses = 0;      // other human pauses (phrase ends, string crossings)
     int keyswitchesIn = 0;
+    // Crossfaded articulations shaped, e.g. "Long notes > Marcato: Attack per note (velocity)".
+    std::vector<std::string> blends;
     int keyswitchesWritten = 0; // for picked articulations
     int keyswitchesReplaced = 0; // file keyswitches inside picked passages
     std::vector<ArticulationUsage> articulations;

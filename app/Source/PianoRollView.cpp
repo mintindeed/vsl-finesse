@@ -96,7 +96,8 @@ void PianoRollView::paint (juce::Graphics& g)
     drawArticulations (g, *track);
     drawMarkings (g, *track);
     drawLane (g, *track, dynamicsArea(), track->profile.dynamicsCC, theme::dynamics,
-              "CC" + juce::String (track->profile.dynamicsCC) + " dynamics");
+              "CC" + juce::String (track->profile.dynamicsCC)
+                  + (track->settings.presetType == vslf::PresetType::Velocity ? juce::String() : juce::String (" dynamics")));
     if (track->profile.expressionCC >= 0)
         drawLane (g, *track, expressionArea(), track->profile.expressionCC, theme::expression,
                   "CC" + juce::String (track->profile.expressionCC) + " expression");

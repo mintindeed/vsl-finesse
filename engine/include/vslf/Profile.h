@@ -34,6 +34,29 @@ struct Articulation
         Crossfade  // CC1 crossfades the layers; velocity is kept as written
     };
     Layers layers = Layers::Unknown;
+
+    // A crossfaded dimension under this articulation: a Dimension Control
+    // (Dim.Ctrl/A-H in Synchron Player) mixes the slots of a parallel
+    // dimension, and the engine shapes it like a player would.
+    struct Blend
+    {
+        enum class Kind
+        {
+            None,
+            // One slot always plays and the control fades another in on top
+            // (Marcato: sustain + staccato attack). An accent: one value per
+            // note, set before it starts.
+            AddedLayer,
+            // The control turns one sound into another (XF tremolo). Colour:
+            // a smooth line that follows the phrase.
+            Crossfade
+        };
+        Kind kind = Kind::None;
+        int controller = -1;  // the CC it's written to; -1 = the note's velocity
+        double centre = 0.5;  // the preset's own value for the control, 0..1
+        std::string name;     // the dimension's name, e.g. "Attack", "XF tremolo"
+    };
+    Blend blend;
 };
 
 // A keyswitch pitch and the level of the player's articulation tree it

@@ -442,14 +442,51 @@ namespace
         return anyCrossfade ? Layers::Crossfade : anyVelocity ? Layers::Velocity : Layers::Unknown;
     }
 
+    constexpr int switchControlSlotFirst = 257; // nodeXFade0, Dim.Ctrl/A
+
+    // A parallel dimension switched by a Dimension Control: which kind of
+    // blend it is (from its slots' Mix/XFade), and where the control goes.
+    void readBlend (const juce::var& node, const juce::var& mappings, SynchronArticulation& a)
+    {
+        using Blend = vslf::Articulation::Blend;
+        const int control = (int) node["switchControl"];
+        if (! (bool) node["parallel"] || control < switchControlSlotFirst || node["nodes"].size() < 2)
+            return;
+        const int slot = control - switchControlSlotFirst;
+
+        int mixed = 0, faded = 0;
+        for (const auto& child : *node["nodes"].getArray())
+            ((int) child["parameters"]["nodeXFadeMode"] == 1 ? mixed : faded)++;
+        if (faded == 0)
+            return; // every slot always plays: the control does nothing
+
+        const auto source = mappings[juce::Identifier ("nodeXFade" + juce::String (slot))]["source"].toString();
+        int controller = -2;
+        if (source == "velocity")
+            controller = -1;
+        else if (source.startsWith ("cc") && source.substring (2).containsOnly ("0123456789"))
+            controller = source.substring (2).getIntValue();
+        if (controller < -1 || controller > 127)
+            return; // speed, aftertouch...: nothing the app writes
+
+        a.blend.kind = mixed > 0 ? Blend::Kind::AddedLayer : Blend::Kind::Crossfade;
+        a.blend.controller = controller;
+        a.blend.name = node["subTitle"].toString().toStdString();
+        a.blendSlot = slot;
+    }
+
     void collect (const juce::var& node, juce::StringArray path, std::vector<int> keys,
-                  std::optional<bool> crossfading, std::vector<SynchronArticulation>& out)
+                  std::optional<bool> crossfading, const juce::var& mappings, std::vector<SynchronArticulation>& out)
     {
         const auto first = firstKey (node);
         if (! first)
         {
             if (! path.isEmpty() && hasPatch (node))
-                out.push_back ({ path, keys, layersOf (node, crossfading) });
+            {
+                SynchronArticulation a { path, keys, layersOf (node, crossfading) };
+                readBlend (node, mappings, a);
+                out.push_back (a);
+            }
             return;
         }
         const auto* children = node["nodes"].getArray();
@@ -463,7 +500,7 @@ namespace
             childPath.add (child["title"].toString().trim());
             auto childKeys = keys;
             childKeys.push_back (key);
-            collect (child, childPath, childKeys, crossfading, out);
+            collect (child, childPath, childKeys, crossfading, mappings, out);
         }
     }
 }
@@ -474,7 +511,13 @@ SynchronArticulations synchronArticulationsFromJson (const juce::var& stateJson)
     const auto root = stateJson["data"]["custom"]["sampler"]["rootNode"];
     if (! root.isObject())
         return result;
-    collect (root, {}, {}, crossfadingOf (stateJson), result.choices);
+    collect (root, {}, {}, crossfadingOf (stateJson), stateJson["data"]["custom"]["paramControl"]["mappings"], result.choices);
+    for (int slot = 0; slot < 8; ++slot)
+    {
+        const auto v = stateJson["data"]["parameters"][juce::Identifier ("nodeXFade" + juce::String (slot))];
+        if (! v.isVoid() && ! v.isUndefined())
+            result.controlValues[slot] = juce::jlimit (0.0, 1.0, (double) v);
+    }
 
     // Follow the selection down the key-switched levels.
     auto node = root;
@@ -504,7 +547,7 @@ std::optional<SynchronArticulations> synchronArticulations (const juce::MemoryBl
 }
 
 vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::vector<SynchronArticulation>& tree,
-                                  const std::vector<int>& startKeys)
+                                  const std::vector<int>& startKeys, const std::map<int, double>& controlValues)
 {
     if (tree.empty())
         return profile;
@@ -528,7 +571,13 @@ vslf::InstrumentProfile withTree (vslf::InstrumentProfile profile, const std::ve
         mappings.erase (std::remove_if (mappings.begin(), mappings.end(),
                                         [&] (const vslf::ArticulationMapping& m) { return sorted (m.keys) == k; }),
                         mappings.end());
-        vslf::Articulation articulation { a.name().toStdString(), 0.0, a.layers };
+        vslf::Articulation articulation { a.name().toStdString(), 0.0, a.layers, a.blend };
+        if (const auto v = controlValues.find (a.blendSlot); v != controlValues.end())
+            articulation.blend.centre = v->second;
+        else if (a.blend.kind == vslf::Articulation::Blend::Kind::Crossfade)
+            articulation.blend.centre = 0.0; // the first sound, until the preset says otherwise
+        else
+            articulation.blend.centre = 60.0 / 127.0; // VSL's default for an added layer
         mappings.push_back ({ a.keys, articulation });
         if (! startKeys.empty() && sorted (startKeys) == k)
             profile.defaultArticulation = articulation;

@@ -508,7 +508,10 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
             // A session restores its own start articulation for the same
             // preset: the state may hold whatever was played last.
             if (presetPath != track->synchronPreset || ! tree)
+            {
                 track->articulationStartKeys = tree ? tree->currentKeys : std::vector<int> {};
+                track->dimensionControls = tree ? tree->controlValues : std::map<int, double> {};
+            }
             track->synchronPreset = presetPath;
             track->synchronArticulations = tree ? tree->choices : std::vector<vslf::io::SynchronArticulation> {};
             session.process (*track);
@@ -575,7 +578,8 @@ namespace
 bool sameArticulations (const std::vector<vslf::io::SynchronArticulation>& a, const std::vector<vslf::io::SynchronArticulation>& b)
 {
     return std::equal (a.begin(), a.end(), b.begin(), b.end(), [] (const auto& x, const auto& y) {
-        return x.path == y.path && x.keys == y.keys;
+        return x.path == y.path && x.keys == y.keys && x.layers == y.layers && x.blendSlot == y.blendSlot
+               && x.blend.kind == y.blend.kind && x.blend.controller == y.blend.controller;
     });
 }
 } // namespace
@@ -606,6 +610,7 @@ void AppContext::followSynchronPreset (Track& t)
     if (tree && newPreset)
     {
         t.articulationStartKeys = tree->currentKeys;
+        t.dimensionControls = tree->controlValues;
         changed = true;
     }
     if (! newPreset)
@@ -834,6 +839,10 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
         for (int k : t->articulationStartKeys)
             startKeys.add (juce::String (k));
         x->setAttribute ("articulationStartKeys", startKeys.joinIntoString (" "));
+        juce::StringArray controls;
+        for (const auto& [slot, value] : t->dimensionControls)
+            controls.add (juce::String (slot) + ":" + juce::String (value, 4));
+        x->setAttribute ("dimensionControls", controls.joinIntoString (" "));
 
         if (t->hasPlugin && t->audio.plugin != nullptr)
         {
@@ -900,6 +909,10 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
         for (const auto& k : juce::StringArray::fromTokens (x->getStringAttribute ("articulationStartKeys"), " ", ""))
             if (k.isNotEmpty())
                 t.articulationStartKeys.push_back (k.getIntValue());
+        for (const auto& c : juce::StringArray::fromTokens (x->getStringAttribute ("dimensionControls"), " ", ""))
+            if (c.contains (":"))
+                t.dimensionControls[c.upToFirstOccurrenceOf (":", false, false).getIntValue()]
+                    = c.fromFirstOccurrenceOf (":", false, false).getDoubleValue();
 
         const juce::File midi (x->getStringAttribute ("midi"));
         if (midi.existsAsFile())

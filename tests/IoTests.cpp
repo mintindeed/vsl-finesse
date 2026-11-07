@@ -462,3 +462,41 @@ TEST_CASE ("the start articulation names the notes before the first keyswitch")
     CHECK (profile.defaultArticulation.name == "Short notes > Staccato");
     CHECK (profile.defaultArticulation.layers == Layers::Velocity);
 }
+
+TEST_CASE ("crossfaded dimensions: the kind from Mix/XFade, the control's source from the preset")
+{
+    using Kind = Articulation::Blend::Kind;
+
+    // VelXF sus: Marcato's Attack adds a staccato attack (Sustain is Mix),
+    // driven by velocity; XF tremolo crossfades (both XFade) with CC20.
+    const auto sus = treeOf (trees::violinVelXFSus);
+    const auto* marcato = find (sus, "Long notes > Marcato");
+    CHECK (marcato->blend.kind == Kind::AddedLayer);
+    CHECK (marcato->blend.controller == -1);
+    CHECK (marcato->blend.name == "Attack");
+    CHECK (marcato->blendSlot == 0);
+    const auto* tremolo = find (sus, "Long notes > XF tremolo");
+    CHECK (tremolo->blend.kind == Kind::Crossfade);
+    CHECK (tremolo->blend.controller == 20);
+    CHECK (tremolo->blendSlot == 1);
+    CHECK (find (sus, "Dynamics > Sfz XF tremolo")->blend.kind == Kind::Crossfade);
+    CHECK (find (sus, "Tremolo > Trem. marcato")->blend.kind == Kind::AddedLayer);
+    CHECK (find (sus, "Long notes > Sustain")->blend.kind == Kind::None);
+    CHECK (sus.controlValues.at (0) == doctest::Approx (60.0 / 127.0).epsilon (0.01));
+    CHECK (sus.controlValues.at (1) == 0.0);
+
+    // The Velocity preset sends Dim.Ctrl/A to CC1 instead.
+    const auto plus = treeOf (trees::violinPlusVelocity);
+    CHECK (find (plus, "Long notes > Marcato")->blend.controller == 1);
+    CHECK (find (plus, "Harmonics > Harm. marcato")->blend.kind == Kind::AddedLayer);
+
+    CHECK (find (treeOf (trees::trumpetVelXF), "Long notes > Marcato")->blend.controller == -1);
+    for (const auto& c : treeOf (trees::harp).choices)
+        CHECK (c.blend.kind == Kind::None);
+
+    // withTree centres each blend on the preset's value for its control.
+    const auto profile = io::withTree (InstrumentProfile {}, sus.choices, {}, sus.controlValues);
+    CHECK (profile.resolve (marcato->keys).blend.centre == doctest::Approx (60.0 / 127.0).epsilon (0.01));
+    CHECK (profile.resolve (tremolo->keys).blend.centre == 0.0);
+    CHECK (profile.resolve (tremolo->keys).blend.controller == 20);
+}

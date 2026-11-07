@@ -16,7 +16,7 @@ int Track::flatDynamics() const
 
 vslf::InstrumentProfile Track::engineProfile() const
 {
-    return vslf::io::withTree (profile, synchronArticulations, articulationStartKeys);
+    return vslf::io::withTree (profile, synchronArticulations, articulationStartKeys, dimensionControls);
 }
 
 bool Track::isPickMissing (const vslf::ArticulationMarking& m) const

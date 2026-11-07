@@ -5,6 +5,7 @@
 #include <vslf/Engine.h>
 #include <vslf/Settings.h>
 
+#include <map>
 #include <optional>
 
 // Reads and patches Synchron Player's saved state (the Audio Unit's state as
@@ -44,12 +45,19 @@ namespace vslf::io
         // here follow velocity; Crossfade otherwise; Unknown if the state
         // doesn't say.
         vslf::Articulation::Layers layers = vslf::Articulation::Layers::Unknown;
+        // Its crossfaded dimension, if it ends in one (Marcato's Attack, XF
+        // tremolo): the kind, where the preset sends its Dimension Control
+        // (velocity or a CC), and which control it is (slot: 0 = Dim.Ctrl/A).
+        // The centre is filled in by withTree.
+        vslf::Articulation::Blend blend;
+        int blendSlot = -1;
         juce::String name() const { return path.joinIntoString (" > "); }
     };
     struct SynchronArticulations
     {
         std::vector<SynchronArticulation> choices; // in the tree's order
         std::vector<int> currentKeys;              // the selection saved in the state
+        std::map<int, double> controlValues;        // Dimension Control values (slot -> 0..1) saved in the state
     };
 
     // From the JSON inside the state (see synchronStateJson). Empty if it has
@@ -68,8 +76,10 @@ namespace vslf::io
     // dynamic layers added. The tree wins over the profile's own entries for
     // the same keys. startKeys (the player's articulation before any
     // keyswitch) gives the articulation before the first keyswitch.
+    // controlValues (the preset's Dimension Control values when it was
+    // loaded) centre the crossfaded dimensions.
     vslf::InstrumentProfile withTree (vslf::InstrumentProfile, const std::vector<SynchronArticulation>&,
-                                      const std::vector<int>& startKeys = {});
+                                      const std::vector<int>& startKeys = {}, const std::map<int, double>& controlValues = {});
 
     // Picks with their keys looked up again by name in the loaded preset's
     // tree, since the same keys can mean another articulation in another

@@ -111,6 +111,7 @@ void assignArticulations (Context& ctx)
         }
         const int index = indexFor (currentCombination());
         ctx.info[i].articulation = index;
+        ctx.info[i].inputVelocity = part.notes[i].velocity;
         ++notesPerIndex[index];
     }
 
@@ -194,7 +195,7 @@ double dynamicValue (int level)
 Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings,
                 const std::vector<Marking>& markings, const ArticulationPicks& picks)
 {
-    detail::Context ctx { profile, settings, {}, {}, {}, {}, {}, {}, {} };
+    detail::Context ctx { profile, settings, {}, {}, {}, {}, {}, {}, {}, {} };
     ctx.part = ingest (input, profile, settings, ctx.report);
 
     for (const auto& m : markings)
@@ -203,6 +204,9 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
                                       input.tempo.secondsAt ((double) m.end), m.level });
 
     ctx.report.keyswitchesIn = (int) ctx.part.keyswitches.size();
+    for (const auto& c : ctx.part.controllers)
+        if (std::find (ctx.fileControllers.begin(), ctx.fileControllers.end(), c.controller) == ctx.fileControllers.end())
+            ctx.fileControllers.push_back (c.controller);
     detail::applyArticulationPicks (ctx, picks);
     detail::assignArticulations (ctx);
 
@@ -213,6 +217,7 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
         detail::shapeDynamics (ctx);
         detail::applyTiming (ctx);
         detail::writeControllers (ctx);
+        detail::writeBlends (ctx);
     }
     else
     {

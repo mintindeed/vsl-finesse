@@ -11,10 +11,10 @@
   | Preset folder | CC1 | Velocity | Long-note swells |
   |---|---|---|---|
   | VelXF sus - MOD | drives long notes | the dynamic for short notes, kept as written for long ones | CC1 |
-  | VelXF - MOD | drives every note | kept as written (it can select an attack variant) | CC1 |
+  | VelXF - MOD | drives every note | kept as written, except where it drives a crossfaded articulation (Marcato's attack), which the app shapes | CC1 |
   | Velocity | not written | the dynamic for every note | CC11 |
 
-  "Short" means shorter than `shortNoteMs` (300 ms). CC1 is one continuous line through the part.
+  "Short" means shorter than `shortNoteMs` (300 ms). With a Synchron preset loaded, each articulation's own layers (velocity or crossfade, read from the preset) replace the short/long rule, except in Velocity. CC1 is one continuous line through the part.
 - **Connected notes always overlap slightly** (`legatoOverlapMs`): legato patches play their transitions, and Synchron's mono patches hand over to the next note. Repeated pitches never overlap.
 - **CC11 only dips.** It rests at `expressionBase` (127) and is used to fade phrase endings below the softest dynamic layer (and, in Velocity presets, to shape long notes). Overall loudness stays where the mixer expects it.
 - **CC values arrive before their note** (`ccLeadMs`, 15 ms), because the player reads CC1 at note-on.
@@ -94,7 +94,7 @@ The picker follows the dynamics buttons' model: drag across bars to select, then
 
 ## Next up
 
-### Crossfaded articulations (proposal)
+### Crossfaded articulations (built: `engine/src/Blends.cpp`)
 
 **Terms.** VSL calls the articulation tree the **Dimension Tree**; each column is a **dimension**. A dimension is switched by keyswitches, or by one of the eight **Dimension Controls** (Dim.Ctrl/A-H, assignable to a CC, velocity, speed...). In parallel mode a dimension plays its slots together: each slot is **Mix** (always plays) or **XFade** (faded in by the Dimension Control). Here: **crossfaded articulations**. In the state: `parallel: true`, the slot's `parameters.nodeXFadeMode` (1 = Mix, 0 = XFade), `switchControl` 257 + slot (`nodeXFade0` = Dim.Ctrl/A...), and the control's source in `paramControl.mappings.nodeXFadeN`.
 
@@ -105,7 +105,9 @@ The picker follows the dynamics buttons' model: drag across bars to select, then
 
 **Writing it** through whatever the preset maps the control to: a CC line (written ahead of the note like CC1, `ccLeadMs`), or the note's velocity (VelXF presets map Dim.Ctrl/A to velocity). Never where it would fight something else: not velocity when velocity is that note's dynamic, not a CC the engine writes for dynamics, and not a CC the user kept from the file (their line wins). Behaviour change: in the VelXF presets, Marcato velocities would no longer be kept exactly as written; they become the attack amount, with the file's own accents folded in.
 
-**Data the engine needs** (from `io/SynchronState.cpp`): per articulation, its crossfade dimension (if any), the kind (layer or crossfade, from the Mix/XFade flags), its source (velocity or CC number) and the preset's value for that control at preset load (like the start articulation).
+**Data** (`io/SynchronState.cpp`, `Articulation::Blend`): an articulation ending in a parallel dimension switched by a Dimension Control (`switchControl` ≥ 257) gets its kind (any Mix slot: added layer; all XFade: crossfade; no XFade slot: nothing), its control's source (velocity or a CC; speed, aftertouch and other sources are skipped) and its name (the dimension's `subTitle`). The centre is the preset's value for that control (`data.parameters.nodeXFadeN`) when the preset was loaded, kept per track (`Track::dimensionControls`, saved in sessions) like the start articulation, because the live value moves with every CC the app plays. Without it: 60/127 for an added layer (VSL's default), 0 for a crossfade.
+
+**Numbers** (Expressive; Character scales the deviation, intensity / 0.6): an added layer is centre + 0.14 × (metric weight − 0.4), + 0.10 at a phrase start or after a gap of 0.25 s, + 0.06 on an upward leap of a fourth or more, − up to 0.14 when the previous note started less than 0.22 s before, − 0.04 for a repeated pitch, + 0.35 × (dynamic level − 0.6), + the file's velocity above the median of its six neighbours (× 1.2, −0.12 to +0.2), + a little seeded noise; kept within 0.08–0.92. On a CC it's set `ccLeadMs` before the note, but never before the previous note has started. A crossfade is centre + 0.4 × the phrase arch (0 at the start, 1 at the peak, 0 at the end; scaled down for phrases under 4 s) + 0.25 × (level − 0.6) + a small drift per phrase, sampled every 2 × `ccIntervalMs` through each note. On velocity it can only be one value per note.
 
 ### Smarter breaths
 

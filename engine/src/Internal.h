@@ -27,6 +27,7 @@ struct NoteInfo
     int string = -1;           // string instruments: index into profile.openStrings
     double hairpin = 0.0;      // crescendo/diminuendo offset at the onset
     double phrasePosition = 0.0; // 0..1 within the phrase (by time)
+    int inputVelocity = 100;     // as written in the file
 
     // Dynamics, 0..1 scale (1 = MIDI 127).
     double base = 0.6;  // base dynamic before shaping
@@ -46,6 +47,7 @@ struct Context
     std::vector<std::vector<int>> articulationKeys;
     std::vector<Phrase> phrases;
     Report report;
+    std::vector<int> fileControllers; // controller numbers the file's kept CCs use
 
     // User markings, in seconds.
     struct TimedMarking
@@ -115,5 +117,6 @@ void shapeDynamics (Context&);
 void findPauses (Context&);
 void applyTiming (Context&);
 void writeControllers (Context&);
+void writeBlends (Context&);
 
 } // namespace vslf::detail
