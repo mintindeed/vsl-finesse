@@ -1,11 +1,11 @@
 name: Build
 
+# Pull requests only: pushes to a branch build once it has a pull request
+# open, and merging to main doesn't start another build. Run the workflow by
+# hand from the Actions tab to build anything else.
 on:
-  push:
-    branches: [main, "claude/**"]
-    # Documentation-only changes don't need a (billed) build.
-    paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   pull_request:
+    # Documentation-only changes don't need a (billed) build.
     paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   workflow_dispatch:
 
@@ -82,7 +82,7 @@ jobs:
           mkdir -p dist
           ditto -c -k --keepParent "$APP" "dist/VSL-Finesse-macOS.zip"
           cp "$CLI" dist/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: VSL-Finesse-macOS
           path: dist/

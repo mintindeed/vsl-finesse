@@ -6,7 +6,7 @@ It never adds or changes articulation keyswitches. Keyswitches in your file are 
 
 ## Getting the app
 
-**Download a build.** Every push builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run, and download **VSL-Finesse-macOS** at the bottom. Unzip it and move **VSL Finesse.app** to Applications. Builds are signed and notarized by Apple (see [Signed builds](#signed-builds)), so it opens with a double-click.
+**Download a build.** Every pull request builds the app on GitHub Actions. Open the repository's **Actions** tab, click the latest successful **Build** run (or a pull request's **Checks** tab), and download **VSL-Finesse-macOS** at the bottom. Unzip it and move **VSL Finesse.app** to Applications. Builds are signed and notarized by Apple (see [Signed builds](#signed-builds)), so it opens with a double-click.
 
 **Or build it yourself** (needs the Xcode Command Line Tools and CMake):
 
