@@ -55,6 +55,9 @@ public:
     void showPluginScanner (juce::Component* parent);
     void loadPlugin (Track&, const juce::PluginDescription&, std::function<void (juce::String error)> done,
                      juce::MemoryBlock state = {});
+    // Loads Synchron Player into a track that has no instrument yet, if it's
+    // installed. Does nothing otherwise.
+    void loadDefaultInstrument (Track&);
     void removePlugin (Track&);
     void showPluginWindow (Track&);
 

@@ -219,7 +219,10 @@ void MainComponent::openFiles (const juce::StringArray& paths, int trackIndex)
         if (! app.loadMidi (*t, f, error))
             errors.add (f.getFileName() + ": " + error);
         else
+        {
             app.session.select (app.session.indexOf (t));
+            app.loadDefaultInstrument (*t);
+        }
     }
 
     if (! errors.isEmpty())

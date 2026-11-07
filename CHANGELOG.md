@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- VSL Finesse is now open source under the MIT licence (see `LICENSE`). JUCE, which the app is built with, keeps its own licence (see README, "Licence").
+
+### Changed
+- Opening a MIDI file on a track with no instrument now loads Synchron Player automatically, if it's installed. Click **Edit** to open it and load your preset. You can still pick another instrument from the track's instrument button.
+- The **Plain** character button is now called **Simple**.
+
 ## [0.4.0] - 2026-11-07
 
 ### Changed

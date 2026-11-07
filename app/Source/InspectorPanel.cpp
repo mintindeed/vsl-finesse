@@ -194,8 +194,8 @@ public:
         }
 
         // Character: one choice instead of the intensity slider.
-        const char* characterNames[] = { "Plain", "Expressive", "Very expressive" };
-        const char* characterTips[] = { "Plain: steady, gentle shaping - good for pads and backing lines",
+        const char* characterNames[] = { "Simple", "Expressive", "Very expressive" };
+        const char* characterTips[] = { "Simple: steady, gentle shaping - good for pads and backing lines",
                                         "Expressive: phrases rise and fall naturally (the default)",
                                         "Very expressive: bigger swells, phrase arches and tapers - good for exposed melodies" };
         for (int i = 0; i < 3; ++i)

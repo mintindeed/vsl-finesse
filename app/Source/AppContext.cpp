@@ -344,6 +344,25 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
         });
 }
 
+void AppContext::loadDefaultInstrument (Track& t)
+{
+    if (t.hasPlugin || t.audio.plugin != nullptr)
+        return;
+
+    for (const auto& d : instrumentPlugins())
+    {
+        if (d.name.containsIgnoreCase ("synchron player"))
+        {
+            loadPlugin (t, d, [] (juce::String error) {
+                if (error.isNotEmpty())
+                    juce::AlertWindow::showMessageBoxAsync (juce::MessageBoxIconType::WarningIcon,
+                                                            "Couldn't load Synchron Player", error);
+            });
+            return;
+        }
+    }
+}
+
 void AppContext::removePlugin (Track& t)
 {
     closePluginWindow (&t);

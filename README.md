@@ -20,7 +20,7 @@ brew install cmake         # once
 
 1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.
 2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins). The profile's range decides which notes are keyswitches: anything outside the playable range.
-3. **Choose instrument...** on the track and pick Synchron Player (Vienna instruments are listed first). Only the instrument you pick is loaded. **Edit** opens its window, where you load your Special Edition preset.
+3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window, where you load your Special Edition preset. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
 4. **Pick the Synchron preset folder** your preset came from (right panel): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. That one choice decides how dynamics are written:
    - **VelXF sus - MOD:** long notes crossfade with CC1, short notes follow velocity
    - **VelXF - MOD:** every note crossfades with CC1. Velocities are left exactly as written, because in these presets velocity can pick an attack (e.g. Marcato's sustain/staccato attack)
@@ -30,7 +30,7 @@ brew install cmake         # once
 5. **Play** (space bar). **Original / Finessed** (or the T key) switches between the untouched file and the performance, at the same position.
 6. **Shape it with buttons:**
    - **Dynamics** (the strip above the notes): drag across some bars to select them, then click **pp p mp mf f ff**, **cresc.** or **dim.** With nothing selected, a button applies to the whole part. Hover a button to see what it means. A crescendo or diminuendo grows two dynamic steps and stays there until the next marking. Right-click a marking to remove it, or use **Clear**. Esc or a click drops the selection.
-   - **Character** (right panel): **Plain**, **Expressive** or **Very expressive**.
+   - **Character** (right panel): **Simple**, **Expressive** or **Very expressive**.
    - **Human pauses** (on by default): breaths in long wind and brass phrases, a moment for the bow to cross strings, and a tiny lift where a phrase ends without a rest. Pauses come out of the end of the earlier note, so the beat never moves.
    - **New variation** re-rolls the small human variation. **Fine-tune...** opens the individual rules behind the buttons, if you ever want them.
 7. **Export Finessed MIDI...** writes `Name (Finessed).mid` next to the original. Drag it into Logic.
@@ -54,7 +54,7 @@ The engine is built on the ideas of the **KTH rule system for music performance*
 | **Final ending** | Ease off at the end | The last note of each phrase tapers, with the strongest taper on the final note of the piece |
 | **Noise** | No two notes are exactly alike | Small random variation in timing and velocity (see below) |
 
-The **Character** buttons set how strongly the rules are applied together: **Plain**, **Expressive** (the default) or **Very expressive**.
+The **Character** buttons set how strongly the rules are applied together: **Simple**, **Expressive** (the default) or **Very expressive**.
 
 ### Human touches
 
@@ -147,4 +147,8 @@ profiles/ built-in instrument profiles
 docs/     design notes
 ```
 
-Built with [JUCE](https://juce.com) 9 (AGPLv3, or a commercial licence if you ever distribute the app closed-source).
+## Licence
+
+VSL Finesse's own code is released under the [MIT licence](LICENSE).
+
+The app and the command line tool are built with [JUCE](https://juce.com) 9, which is licensed separately: AGPLv3, or a JUCE commercial licence. A build you give to other people that links JUCE under the AGPLv3 has to be passed on under the AGPLv3 as a whole, with its source. The engine (`engine/`) doesn't use JUCE and is plain MIT.
