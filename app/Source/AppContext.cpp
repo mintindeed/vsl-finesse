@@ -107,6 +107,8 @@ bool AppContext::loadMidi (Track& t, const juce::File& file, juce::String& error
         return false;
     }
 
+    if (t.midiFile != file)
+        t.markings.clear();
     t.midiFile = file;
     t.input = std::move (read.part);
     t.readWarnings = std::move (read.warnings);
@@ -174,6 +176,41 @@ void AppContext::updateProfile (Track& t, const vslp::InstrumentProfile& p)
         DBG ("Couldn't save profile: " << error);
     }
     session.process (t);
+}
+
+void AppContext::applyMarking (Track& t, vslp::Marking m)
+{
+    if (! t.hasMidi)
+        return;
+    if (session.hasSelection() && session.selectedTrack() == &t)
+    {
+        m.start = session.selectionStart;
+        m.end = session.selectionEnd;
+    }
+    else
+    {
+        m.start = 0;
+        m.end = partEnd (t);
+    }
+    vslp::addMarking (t.markings, m);
+    session.process (t);
+}
+
+void AppContext::clearMarkings (Track& t)
+{
+    if (session.hasSelection() && session.selectedTrack() == &t)
+        vslp::clearMarkings (t.markings, session.selectionStart, session.selectionEnd);
+    else
+        t.markings.clear();
+    session.process (t);
+}
+
+vslp::Tick AppContext::partEnd (const Track& t)
+{
+    vslp::Tick end = 0;
+    for (const auto& n : t.input.notes)
+        end = std::max (end, n.end);
+    return end + 1;
 }
 
 void AppContext::setSettings (Track& t, const vslp::Settings& s)
@@ -476,6 +513,7 @@ bool AppContext::saveSession (const juce::File& file, juce::String& error)
         x->setAttribute ("solo", t->audio.solo);
         x->setAttribute ("gain", (double) t->audio.gain);
         x->createNewChildElement ("Settings")->addTextElement (juce::JSON::toString (vslp::io::settingsToJson (t->settings), true));
+        x->createNewChildElement ("Markings")->addTextElement (juce::JSON::toString (vslp::io::markingsToJson (t->markings), true));
 
         if (t->hasPlugin && t->audio.plugin != nullptr)
         {
@@ -532,6 +570,8 @@ void AppContext::openSession (const juce::File& file, std::function<void (juce::
         t.settings = defaultSettings();
         if (auto* sx = x->getChildByName ("Settings"))
             vslp::io::settingsFromJson (juce::JSON::parse (sx->getAllSubText()), t.settings);
+        if (auto* mx = x->getChildByName ("Markings"))
+            t.markings = vslp::io::markingsFromJson (juce::JSON::parse (mx->getAllSubText()));
 
         const juce::File midi (x->getStringAttribute ("midi"));
         if (midi.existsAsFile())

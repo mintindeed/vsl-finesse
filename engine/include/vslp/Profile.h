@@ -70,6 +70,10 @@ struct InstrumentProfile
     // CCs that survive ingest. Everything else is wiped.
     std::vector<int> preservedControllers;
 
+    // Open strings, low to high (string instruments only). Used to work out
+    // which string each note is played on, so string crossings get time.
+    std::vector<int> openStrings;
+
     // Wind and brass players have to breathe: phrases longer than this are
     // split. 0 = no limit.
     double maxBreathSeconds = 0.0;

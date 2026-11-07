@@ -47,8 +47,12 @@ void shapeDynamics (Context& ctx)
 
     for (size_t i = 0; i < notes.size(); ++i)
     {
-        const double base = s.useInputVelocity ? notes[i].velocity / 127.0 : s.baseLevel;
-        info[i].base = clamp01 (base + s.levelOffset);
+        // Base dynamic: a pp..ff marking if one covers the note, otherwise the
+        // file's velocity (or the fixed base level); plus any crescendo/diminuendo.
+        double base = s.useInputVelocity ? notes[i].velocity / 127.0 : s.baseLevel;
+        ctx.markedLevel (info[i].onset, base);
+        info[i].hairpin = ctx.hairpinAt (info[i].onset);
+        info[i].base = clamp01 (base + info[i].hairpin + s.levelOffset);
     }
 
     for (const auto& p : ctx.phrases)

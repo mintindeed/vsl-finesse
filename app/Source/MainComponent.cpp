@@ -33,6 +33,7 @@ MainComponent::MainComponent (AppContext& a) : app (a)
     setWantsKeyboardFocus (true);
 
     addAndMakeVisible (trackList);
+    addAndMakeVisible (dynamicsBar);
     addAndMakeVisible (pianoRoll);
     addAndMakeVisible (inspector);
 
@@ -130,6 +131,7 @@ void MainComponent::resized()
 
     inspector.setBounds (r.removeFromRight (inspectorWidth));
     trackList.setBounds (r.removeFromTop (juce::jmin (trackList.preferredHeight(), r.getHeight() / 3)));
+    dynamicsBar.setBounds (r.removeFromTop (40));
     pianoRoll.setBounds (r);
 }
 
@@ -139,6 +141,11 @@ bool MainComponent::keyPressed (const juce::KeyPress& key)
     {
         app.engine.togglePlay();
         updateTransport();
+        return true;
+    }
+    if (key == juce::KeyPress::escapeKey)
+    {
+        app.session.clearSelection();
         return true;
     }
     if (key == juce::KeyPress::returnKey || key == juce::KeyPress::homeKey)

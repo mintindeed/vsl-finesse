@@ -36,6 +36,12 @@ public:
     // re-runs the engine.
     void updateProfile (Track&, const vslp::InstrumentProfile&);
     void setSettings (Track&, const vslp::Settings&);
+
+    // Dynamics markings: applied to the selection, or the whole part if
+    // nothing is selected. Clearing works the same way.
+    void applyMarking (Track&, vslp::Marking);
+    void clearMarkings (Track&);
+    static vslp::Tick partEnd (const Track&);
     void saveDefaultSettings (const vslp::Settings&);
     vslp::Settings defaultSettings();
     // The preset type last chosen becomes the default for new tracks.

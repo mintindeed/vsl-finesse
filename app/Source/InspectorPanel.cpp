@@ -180,7 +180,7 @@ public:
             label->setFont (juce::FontOptions (12.0f));
             label->setColour (juce::Label::textColourId, theme::text);
             label->setTooltip (spec.tooltip);
-            addAndMakeVisible (label);
+            addChildComponent (label);
 
             auto* s = sliders.add (new juce::Slider (juce::Slider::LinearHorizontal, juce::Slider::TextBoxRight));
             s->setRange (spec.min, spec.max, spec.step);
@@ -190,10 +190,49 @@ public:
             s->setDoubleClickReturnValue (true, vslp::Settings {}.*spec.field);
             const auto field = spec.field;
             s->onValueChange = [this, s, field] { pending.*field = s->getValue(); settingsChanged(); };
-            addAndMakeVisible (s);
+            addChildComponent (s);
         }
 
-        addAndMakeVisible (inputVelocityToggle);
+        // Character: one choice instead of the intensity slider.
+        const char* characterNames[] = { "Plain", "Expressive", "Very expressive" };
+        const char* characterTips[] = { "Plain: steady, gentle shaping - good for pads and backing lines",
+                                        "Expressive: phrases rise and fall naturally (the default)",
+                                        "Very expressive: bigger swells, phrase arches and tapers - good for exposed melodies" };
+        for (int i = 0; i < 3; ++i)
+        {
+            auto* b = characterButtons.add (new juce::TextButton (characterNames[i]));
+            b->setTooltip (characterTips[i]);
+            b->setClickingTogglesState (true);
+            b->setRadioGroupId (2002);
+            b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
+            b->setConnectedEdges ((i > 0 ? juce::Button::ConnectedOnLeft : 0) | (i < 2 ? juce::Button::ConnectedOnRight : 0));
+            b->onClick = [this, b, i] {
+                if (! b->getToggleState())
+                    return;
+                pending.intensity = characterIntensity[i];
+                showSettings();
+                settingsChanged();
+            };
+            addAndMakeVisible (b);
+        }
+
+        addAndMakeVisible (humanPausesToggle);
+        humanPausesToggle.setTooltip ("Breaths for winds and brass, a moment for the bow to cross strings, "
+                                      "and a tiny lift where a phrase ends without a rest");
+        humanPausesToggle.onClick = [this] {
+            pending.humanPauses = humanPausesToggle.getToggleState();
+            settingsChanged();
+        };
+
+        addAndMakeVisible (fineTuneButton);
+        fineTuneButton.setTooltip ("The individual rules behind the buttons above");
+        fineTuneButton.onClick = [this] {
+            showFineTune = ! showFineTune;
+            updateFineTuneVisibility();
+            layout();
+        };
+
+        addChildComponent (inputVelocityToggle);
         inputVelocityToggle.setTooltip ("Use the file's velocities as the base dynamic (keeps dynamics written in the notation)");
         inputVelocityToggle.onClick = [this] {
             pending.useInputVelocity = inputVelocityToggle.getToggleState();
@@ -207,11 +246,11 @@ public:
             settingsChanged();
         };
 
-        addAndMakeVisible (defaultButton);
+        addChildComponent (defaultButton);
         defaultButton.setTooltip ("Use these settings for new tracks");
         defaultButton.onClick = [this] { app.saveDefaultSettings (pending); };
 
-        addAndMakeVisible (resetButton);
+        addChildComponent (resetButton);
         resetButton.onClick = [this] {
             const auto seed = pending.seed;
             pending = vslp::Settings {};
@@ -307,6 +346,10 @@ public:
         for (size_t i = 0; i < std::size (sliderSpecs); ++i)
             sliders[(int) i]->setValue (pending.*(sliderSpecs[i].field), juce::dontSendNotification);
         inputVelocityToggle.setToggleState (pending.useInputVelocity, juce::dontSendNotification);
+        humanPausesToggle.setToggleState (pending.humanPauses, juce::dontSendNotification);
+        for (int i = 0; i < 3; ++i)
+            characterButtons[i]->setToggleState (std::abs (pending.intensity - characterIntensity[i]) < 0.03,
+                                                 juce::dontSendNotification);
         const int typeIndex = pending.presetType == vslp::PresetType::VelXFSustain ? 0
                             : pending.presetType == vslp::PresetType::VelXF ? 1 : 2;
         presetButtons[typeIndex]->setToggleState (true, juce::dontSendNotification);
@@ -357,7 +400,9 @@ private:
             s << ", " << r.controllersRemoved << " old ones removed";
         s << "\n";
         if (r.legatoConnections > 0)
-            s << r.legatoConnections << " legato connections\n";
+            s << r.legatoConnections << " connected notes\n";
+        if (r.breaths > 0 || r.pauses > 0)
+            s << r.breaths << " breaths, " << r.pauses << " other human pauses\n";
         if (r.chordNotesRemoved > 0 || r.overlapsTrimmed > 0)
             s << r.chordNotesRemoved << " chord notes removed, " << r.overlapsTrimmed << " overlaps trimmed\n";
         for (const auto& w : t.readWarnings)
@@ -403,30 +448,45 @@ private:
             y += 34;
         }
 
+        y += 4;
+        place (performanceHeader, 28, 8);
+        {
+            juce::Rectangle<int> r (12, y, w - 24, 28);
+            const int bw = r.getWidth() / 3;
+            for (auto* b : characterButtons)
+                b->setBounds (r.removeFromLeft (bw));
+            y += 36;
+        }
+        place (humanPausesToggle, 22, 8);
+        {
+            juce::Rectangle<int> r (12, y, w - 24, 26);
+            variationButton.setBounds (r.removeFromLeft ((r.getWidth() - 8) / 2));
+            r.removeFromLeft (8);
+            fineTuneButton.setBounds (r);
+            y += 34;
+        }
+        if (showFineTune)
+        {
+            place (inputVelocityToggle, 22, 6);
+            for (int i = 0; i < sliders.size(); ++i)
+            {
+                labels[i]->setBounds (12, y, 120, 24);
+                sliders[i]->setBounds (132, y, w - 144, 24);
+                y += 28;
+            }
+            juce::Rectangle<int> r (12, y + 4, w - 24, 26);
+            resetButton.setBounds (r.removeFromLeft ((r.getWidth() - 8) / 2));
+            r.removeFromLeft (8);
+            defaultButton.setBounds (r);
+            y += 40;
+        }
+
+        y += 4;
         place (articulationHeader, 28, 6);
         place (articulationHint, 32, 4);
         for (auto* row : rows)
             place (*row, 20, 2);
-
-        y += 6;
-        place (performanceHeader, 28, 8);
-        place (inputVelocityToggle, 22, 6);
-        for (int i = 0; i < sliders.size(); ++i)
-        {
-            labels[i]->setBounds (12, y, 120, 24);
-            sliders[i]->setBounds (132, y, w - 144, 24);
-            y += 28;
-        }
-        {
-            juce::Rectangle<int> r (12, y + 4, w - 24, 26);
-            const int bw = (r.getWidth() - 12) / 3;
-            variationButton.setBounds (r.removeFromLeft (bw));
-            r.removeFromLeft (6);
-            resetButton.setBounds (r.removeFromLeft (bw));
-            r.removeFromLeft (6);
-            defaultButton.setBounds (r);
-            y += 40;
-        }
+        y += 10;
 
         place (reportHeader, 28, 6);
         const int reportHeight = juce::jmax (80, (int) report.getTextHeight() + 16);
@@ -455,6 +515,22 @@ private:
     juce::OwnedArray<juce::Label> labels;
     juce::OwnedArray<juce::Slider> sliders;
     juce::ToggleButton inputVelocityToggle { "Base dynamic from the file's velocities" };
+    juce::ToggleButton humanPausesToggle { "Human pauses (breaths, bow changes)" };
+    juce::OwnedArray<juce::TextButton> characterButtons;
+    static constexpr double characterIntensity[3] = { 0.3, 0.6, 1.0 };
+    juce::TextButton fineTuneButton { "Fine-tune..." };
+    bool showFineTune = false;
+
+    void updateFineTuneVisibility()
+    {
+        for (auto* c : std::initializer_list<juce::Component*> { &inputVelocityToggle, &resetButton, &defaultButton })
+            c->setVisible (showFineTune);
+        for (auto* l : labels)
+            l->setVisible (showFineTune);
+        for (auto* sl : sliders)
+            sl->setVisible (showFineTune);
+        fineTuneButton.setButtonText (showFineTune ? "Hide fine-tune" : "Fine-tune...");
+    }
     juce::TextButton variationButton { "New variation" }, resetButton { "Reset" }, defaultButton { "Save as default" };
     juce::TextEditor report;
 };

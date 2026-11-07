@@ -66,7 +66,8 @@ struct CurveBuilder
         const auto& in = ctx.info[i];
         double v = in.level;
         if (crossfades (i))
-            v += bump (i, t) - in.taper * taperAmount (i, t);
+            v += bump (i, t) - in.taper * taperAmount (i, t)
+                 + ctx.hairpinAt (std::min (t, in.offset)) - in.hairpin; // hairpins keep moving inside long notes
         return v;
     }
 

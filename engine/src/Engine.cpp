@@ -30,6 +30,46 @@ double smoothstep (double x)
     return x * x * (3.0 - 2.0 * x);
 }
 
+bool Context::markedLevel (double t, double& level) const
+{
+    // The most recently started Dynamic marking covering t wins.
+    bool found = false;
+    double latestStart = -1.0e18;
+    for (const auto& m : markings)
+        if (m.kind == Marking::Kind::Dynamic && t >= m.start && t < m.end && m.start >= latestStart)
+        {
+            latestStart = m.start;
+            level = dynamicValue (m.level);
+            found = true;
+        }
+    return found;
+}
+
+double Context::hairpinAt (double t) const
+{
+    // A hairpin grows two dynamic steps over its passage and keeps that
+    // arrival level until the next Dynamic marking starts.
+    constexpr double steps = 0.2;
+    double offset = 0.0;
+    for (const auto& h : markings)
+    {
+        if (h.kind == Marking::Kind::Dynamic || t < h.start)
+            continue;
+
+        bool reset = false;
+        for (const auto& d : markings)
+            if (d.kind == Marking::Kind::Dynamic && d.start > h.start && d.start <= t)
+                reset = true;
+        if (reset)
+            continue;
+
+        const double length = std::max (1.0e-6, h.end - h.start);
+        const double progress = smoothstep ((t - h.start) / length);
+        offset += (h.kind == Marking::Kind::Crescendo ? steps : -steps) * progress;
+    }
+    return offset;
+}
+
 void assignArticulations (Context& ctx)
 {
     auto& part = ctx.part;
@@ -88,16 +128,87 @@ void assignArticulations (Context& ctx)
 
 } // namespace detail
 
-Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings)
+void addMarking (std::vector<Marking>& markings, const Marking& m)
 {
-    detail::Context ctx { profile, settings, {}, {}, {}, {}, {}, {} };
+    if (m.end <= m.start)
+        return;
+
+    const bool isDynamic = m.kind == Marking::Kind::Dynamic;
+    std::vector<Marking> kept;
+    for (const auto& old : markings)
+    {
+        const bool sameFamily = (old.kind == Marking::Kind::Dynamic) == isDynamic;
+        const bool overlaps = old.start < m.end && m.start < old.end;
+        if (! sameFamily || ! overlaps)
+        {
+            kept.push_back (old);
+            continue;
+        }
+        if (! isDynamic)
+            continue; // hairpins are replaced whole
+
+        // Keep the parts of the old dynamic outside the new one.
+        if (old.start < m.start)
+        {
+            auto left = old;
+            left.end = m.start;
+            kept.push_back (left);
+        }
+        if (old.end > m.end)
+        {
+            auto right = old;
+            right.start = m.end;
+            kept.push_back (right);
+        }
+    }
+    kept.push_back (m);
+    std::stable_sort (kept.begin(), kept.end(), [] (const Marking& a, const Marking& b) { return a.start < b.start; });
+    markings = std::move (kept);
+}
+
+void clearMarkings (std::vector<Marking>& markings, Tick start, Tick end)
+{
+    markings.erase (std::remove_if (markings.begin(), markings.end(),
+                                    [=] (const Marking& m) { return m.start < end && start < m.end; }),
+                    markings.end());
+}
+
+const char* dynamicSymbol (int level)
+{
+    static const char* symbols[] = { "pp", "p", "mp", "mf", "f", "ff" };
+    return symbols[std::clamp (level, 0, numDynamicLevels - 1)];
+}
+
+const char* dynamicMeaning (int level)
+{
+    static const char* meanings[] = { "pianissimo, very soft", "piano, soft", "mezzo-piano, moderately soft",
+                                      "mezzo-forte, moderately loud", "forte, loud", "fortissimo, very loud" };
+    return meanings[std::clamp (level, 0, numDynamicLevels - 1)];
+}
+
+double dynamicValue (int level)
+{
+    static const double values[] = { 0.24, 0.36, 0.48, 0.6, 0.74, 0.88 };
+    return values[std::clamp (level, 0, numDynamicLevels - 1)];
+}
+
+Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings,
+                const std::vector<Marking>& markings)
+{
+    detail::Context ctx { profile, settings, {}, {}, {}, {}, {}, {}, {} };
     ctx.part = ingest (input, profile, settings, ctx.report);
+
+    for (const auto& m : markings)
+        if (m.end > m.start)
+            ctx.markings.push_back ({ m.kind, input.tempo.secondsAt ((double) m.start),
+                                      input.tempo.secondsAt ((double) m.end), m.level });
 
     detail::assignArticulations (ctx);
 
     if (! ctx.part.notes.empty())
     {
         detail::analyze (ctx);
+        detail::findPauses (ctx);
         detail::shapeDynamics (ctx);
         detail::applyTiming (ctx);
         detail::writeControllers (ctx);

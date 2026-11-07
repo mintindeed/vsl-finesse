@@ -4,6 +4,7 @@ add_library (vslp_engine STATIC
     src/Dynamics.cpp
     src/Engine.cpp
     src/Ingest.cpp
+    src/Pauses.cpp
     src/Profile.cpp
     src/TempoMap.cpp
     src/Timing.cpp)

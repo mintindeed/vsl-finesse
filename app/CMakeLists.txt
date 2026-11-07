@@ -10,6 +10,7 @@ juce_add_gui_app (VSLPerformerApp
 target_sources (VSLPerformerApp PRIVATE
     Source/AppContext.cpp
     Source/AudioEngine.cpp
+    Source/DynamicsBar.cpp
     Source/InspectorPanel.cpp
     Source/Main.cpp
     Source/MainComponent.cpp

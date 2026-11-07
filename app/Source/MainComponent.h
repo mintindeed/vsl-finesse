@@ -3,6 +3,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "AppContext.h"
+#include "DynamicsBar.h"
 #include "InspectorPanel.h"
 #include "PianoRollView.h"
 #include "TrackListView.h"
@@ -50,6 +51,7 @@ private:
     juce::TooltipWindow tooltips { this, 600 };
 
     TrackListView trackList { app };
+    DynamicsBar dynamicsBar { app };
     PianoRollView pianoRoll { app };
     InspectorPanel inspector { app };
 

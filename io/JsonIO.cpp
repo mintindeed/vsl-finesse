@@ -1,5 +1,6 @@
 #include "JsonIO.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace vslp::io
@@ -92,6 +93,14 @@ juce::var profileToJson (const InstrumentProfile& p)
     juce::Array<juce::var> range { noteVar (p.lowestNote), noteVar (p.highestNote) };
     o->setProperty ("range", range);
 
+    if (! p.openStrings.empty())
+    {
+        juce::Array<juce::var> strings;
+        for (int s : p.openStrings)
+            strings.add (noteVar (s));
+        o->setProperty ("strings", strings);
+    }
+
     o->setProperty ("dynamicsCC", p.dynamicsCC);
     o->setProperty ("expressionCC", p.expressionCC);
     if (p.maxBreathSeconds > 0.0)
@@ -160,6 +169,22 @@ bool profileFromJson (const juce::var& v, InstrumentProfile& p, std::string& err
             error = "range must be [lowest, highest], e.g. [\"G2\", \"C7\"]";
             return false;
         }
+    }
+
+    if (const auto* strings = v["strings"].getArray())
+    {
+        p.openStrings.clear();
+        for (const auto& sv : *strings)
+        {
+            int pitch = 0;
+            if (! parseNote (sv, pitch))
+            {
+                error = "bad open string '" + sv.toString().toStdString() + "'";
+                return false;
+            }
+            p.openStrings.push_back (pitch);
+        }
+        std::sort (p.openStrings.begin(), p.openStrings.end());
     }
 
     if (v.hasProperty ("dynamicsCC"))       p.dynamicsCC = (int) v["dynamicsCC"];
@@ -252,7 +277,7 @@ bool saveProfile (const InstrumentProfile& p, const juce::File& file, std::strin
 }
 
 #define VSLP_SETTINGS_FIELDS(X) \
-    X (intensity) X (useInputVelocity) X (baseLevel) X (levelOffset) \
+    X (intensity) X (humanPauses) X (useInputVelocity) X (baseLevel) X (levelOffset) \
     X (phraseArchAmount) X (highLoudAmount) X (durationContrastAmount) X (metricAccentAmount) \
     X (longNoteSwellAmount) X (phraseEndTaperAmount) \
     X (humanizeVelocity) X (humanizeTimingMs) \
@@ -301,6 +326,45 @@ bool loadSettings (const juce::File& file, Settings& s, std::string& error)
 bool saveSettings (const Settings& s, const juce::File& file, std::string& error)
 {
     return writeJson (settingsToJson (s), file, error);
+}
+
+juce::var markingsToJson (const std::vector<Marking>& markings)
+{
+    juce::Array<juce::var> list;
+    for (const auto& m : markings)
+    {
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("kind", m.kind == Marking::Kind::Dynamic ? "dynamic"
+                              : m.kind == Marking::Kind::Crescendo ? "crescendo" : "diminuendo");
+        o->setProperty ("start", (juce::int64) m.start);
+        o->setProperty ("end", (juce::int64) m.end);
+        if (m.kind == Marking::Kind::Dynamic)
+            o->setProperty ("dynamic", juce::String (dynamicSymbol (m.level)));
+        list.add (juce::var (o));
+    }
+    return list;
+}
+
+std::vector<Marking> markingsFromJson (const juce::var& v)
+{
+    std::vector<Marking> out;
+    if (const auto* list = v.getArray())
+        for (const auto& item : *list)
+        {
+            Marking m;
+            const auto kind = item["kind"].toString();
+            m.kind = kind == "crescendo" ? Marking::Kind::Crescendo
+                   : kind == "diminuendo" ? Marking::Kind::Diminuendo : Marking::Kind::Dynamic;
+            m.start = (Tick) (juce::int64) item["start"];
+            m.end = (Tick) (juce::int64) item["end"];
+            const auto symbol = item["dynamic"].toString();
+            for (int level = 0; level < numDynamicLevels; ++level)
+                if (symbol == dynamicSymbol (level))
+                    m.level = level;
+            if (m.end > m.start)
+                out.push_back (m);
+        }
+    return out;
 }
 
 } // namespace vslp::io

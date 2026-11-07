@@ -42,6 +42,10 @@ struct Settings
     // follow velocity in VelXF sus presets.
     double shortNoteMs = 300.0;
 
+    // Human pauses: breaths for winds and brass, a moment for the bow to
+    // cross strings, and a tiny lift where a phrase ends without a rest.
+    bool humanPauses = true;
+
     // Master amount of shaping applied on top of the base dynamic.
     double intensity = 0.6;
 

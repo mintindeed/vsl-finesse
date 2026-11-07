@@ -1,4 +1,5 @@
 #include "PianoRollView.h"
+#include "Bars.h"
 #include "Theme.h"
 
 PianoRollView::PianoRollView (AppContext& a) : app (a)
@@ -14,12 +15,17 @@ PianoRollView::~PianoRollView()
 
 void PianoRollView::changeListenerCallback (juce::ChangeBroadcaster*) { repaint(); }
 
-juce::Rectangle<int> PianoRollView::headerArea() const { return getLocalBounds().removeFromTop (34); }
+juce::Rectangle<int> PianoRollView::headerArea() const { return getLocalBounds().removeFromTop (headerHeight); }
+
+juce::Rectangle<int> PianoRollView::markingsArea() const
+{
+    return getLocalBounds().removeFromTop (headerHeight).removeFromBottom (22);
+}
 
 juce::Rectangle<int> PianoRollView::notesArea() const
 {
     auto r = getLocalBounds();
-    r.removeFromTop (34);
+    r.removeFromTop (headerHeight);
     r.removeFromBottom (170);
     return r;
 }
@@ -80,7 +86,9 @@ void PianoRollView::paint (juce::Graphics& g)
     }
 
     drawGrid (g, *track);
+    drawSelection (g, *track);
     drawNotes (g, *track);
+    drawMarkings (g, *track);
     drawLane (g, *track, dynamicsArea(), track->profile.dynamicsCC, theme::dynamics,
               "CC" + juce::String (track->profile.dynamicsCC) + " dynamics");
     if (track->profile.expressionCC >= 0)
@@ -273,24 +281,171 @@ void PianoRollView::drawLane (juce::Graphics& g, const Track& t, juce::Rectangle
     g.drawText (label, area.reduced (6, 2), juce::Justification::topLeft);
 }
 
+void PianoRollView::drawSelection (juce::Graphics& g, const Track& t)
+{
+    if (! app.session.hasSelection())
+        return;
+    const auto& tempo = t.input.tempo;
+    const float x1 = xForSeconds (tempo.secondsAt ((double) app.session.selectionStart));
+    const float x2 = xForSeconds (tempo.secondsAt ((double) app.session.selectionEnd));
+    const juce::Rectangle<float> r (x1, (float) markingsArea().getY(), x2 - x1, (float) (getHeight() - markingsArea().getY()));
+    g.setColour (theme::accent.withAlpha (0.12f));
+    g.fillRect (r);
+    g.setColour (theme::accent.withAlpha (0.6f));
+    g.drawVerticalLine ((int) x1, r.getY(), r.getBottom());
+    g.drawVerticalLine ((int) x2, r.getY(), r.getBottom());
+}
+
+int PianoRollView::markingAt (const Track& t, juce::Point<int> p) const
+{
+    const auto area = markingsArea();
+    if (! area.contains (p))
+        return -1;
+    const auto& tempo = t.input.tempo;
+    const float half = (float) area.getHeight() / 2.0f;
+    for (int i = (int) t.markings.size(); --i >= 0;)
+    {
+        const auto& m = t.markings[(size_t) i];
+        const float x1 = xForSeconds (tempo.secondsAt ((double) m.start));
+        const float x2 = xForSeconds (tempo.secondsAt ((double) m.end));
+        const bool hairpin = m.kind != vslp::Marking::Kind::Dynamic;
+        const float top = (float) area.getY();
+        const float height = hairpin ? (float) area.getHeight() : half + 1.0f;
+        if ((float) p.x >= x1 && (float) p.x <= x2 && (float) p.y >= top && (float) p.y <= top + height)
+            return i;
+    }
+    return -1;
+}
+
+void PianoRollView::drawMarkings (juce::Graphics& g, const Track& t)
+{
+    const auto area = markingsArea();
+    g.setColour (theme::panel.withAlpha (0.6f));
+    g.fillRect (area);
+
+    const auto& tempo = t.input.tempo;
+    const float half = (float) area.getHeight() / 2.0f;
+    for (const auto& m : t.markings)
+    {
+        const float x1 = xForSeconds (tempo.secondsAt ((double) m.start));
+        const float x2 = xForSeconds (tempo.secondsAt ((double) m.end));
+        if (x2 < 0.0f || x1 > (float) getWidth())
+            continue;
+
+        if (m.kind == vslp::Marking::Kind::Dynamic)
+        {
+            const float y = (float) area.getY();
+            g.setColour (theme::text.withAlpha (0.25f));
+            g.fillRect (x1, y + half - 2.0f, x2 - x1, 1.0f);
+            g.setColour (theme::text);
+            g.setFont (juce::FontOptions (13.0f, juce::Font::bold | juce::Font::italic));
+            g.drawText (vslp::dynamicSymbol (m.level), juce::Rectangle<float> (x1 + 3.0f, y, 30.0f, half),
+                        juce::Justification::centredLeft);
+        }
+        else
+        {
+            // A hairpin: opening for crescendo, closing for diminuendo.
+            const float y = (float) area.getCentreY();
+            const float open = half - 3.0f;
+            juce::Path p;
+            if (m.kind == vslp::Marking::Kind::Crescendo)
+            {
+                p.startNewSubPath (x2, y - open);
+                p.lineTo (x1, y);
+                p.lineTo (x2, y + open);
+            }
+            else
+            {
+                p.startNewSubPath (x1, y - open);
+                p.lineTo (x2, y);
+                p.lineTo (x1, y + open);
+            }
+            g.setColour (theme::text.withAlpha (0.9f));
+            g.strokePath (p, juce::PathStrokeType (1.6f));
+        }
+    }
+
+    if (t.markings.empty())
+    {
+        g.setColour (theme::textDim.withAlpha (0.7f));
+        g.setFont (juce::FontOptions (11.0f));
+        g.drawText ("Dynamics markings appear here", area.reduced (6, 0), juce::Justification::centredLeft);
+    }
+}
+
 void PianoRollView::mouseDown (const juce::MouseEvent& e)
 {
     dragStartX = (float) e.x;
     dragStartView = viewStart;
-    if (! e.mods.isPopupMenu() && ! e.mods.isAltDown())
+    selecting = false;
+    scrubbing = e.y < markingsArea().getY(); // the bar ruler moves the play position
+
+    auto* track = app.session.selectedTrack();
+    if (track == nullptr || ! track->hasMidi)
+        return;
+
+    if (e.mods.isPopupMenu())
+    {
+        const int index = markingAt (*track, e.getPosition());
+        if (index < 0)
+            return;
+        juce::PopupMenu menu;
+        menu.addItem (1, "Remove this marking");
+        juce::Component::SafePointer<PianoRollView> safe (this);
+        menu.showMenuAsync (juce::PopupMenu::Options(), [safe, index] (int result) {
+            if (safe == nullptr || result != 1)
+                return;
+            if (auto* t = safe->app.session.selectedTrack(); t != nullptr && index < (int) t->markings.size())
+            {
+                t->markings.erase (t->markings.begin() + index);
+                safe->app.session.process (*t);
+            }
+        });
+        return;
+    }
+
+    if (scrubbing && ! e.mods.isAltDown())
         app.engine.setPosition (juce::jmax (0.0, secondsForX ((float) e.x)));
-    repaint();
 }
 
 void PianoRollView::mouseDrag (const juce::MouseEvent& e)
 {
+    if (e.mods.isPopupMenu())
+        return;
     if (e.mods.isAltDown()) // Alt-drag scrolls
     {
         viewStart = juce::jmax (-1.0, dragStartView - ((float) e.x - dragStartX) / pixelsPerSecond);
         repaint();
+        return;
     }
-    else
+    if (scrubbing)
+    {
         app.engine.setPosition (juce::jmax (0.0, secondsForX ((float) e.x)));
+        return;
+    }
+
+    auto* track = app.session.selectedTrack();
+    if (track == nullptr || ! track->hasMidi)
+        return;
+
+    if (! selecting && std::abs ((float) e.x - dragStartX) > 4.0f)
+        selecting = true;
+    if (selecting)
+    {
+        const auto& part = track->input;
+        const auto a = snapToBeat (part, part.tempo.tickAt (juce::jmax (0.0, secondsForX (dragStartX))));
+        const auto b = snapToBeat (part, part.tempo.tickAt (juce::jmax (0.0, secondsForX ((float) e.x))));
+        app.session.setSelection (std::min (a, b), std::max (a, b));
+    }
+}
+
+void PianoRollView::mouseUp (const juce::MouseEvent& e)
+{
+    if (e.mods.isPopupMenu() || e.mods.isAltDown() || scrubbing || selecting)
+        return;
+    // A plain click: move the play position and drop the selection.
+    app.session.clearSelection();
+    app.engine.setPosition (juce::jmax (0.0, secondsForX ((float) e.x)));
 }
 
 void PianoRollView::zoomAround (float x, double factor)

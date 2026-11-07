@@ -29,6 +29,7 @@ public:
     std::vector<std::string> readWarnings;
     vslp::InstrumentProfile profile;
     vslp::Settings settings;
+    std::vector<vslp::Marking> markings; // pp..ff, crescendos (input ticks)
     vslp::Result result;
 
     juce::PluginDescription pluginDescription;
@@ -74,6 +75,13 @@ public:
 
     // Swaps in a new plugin; returns the old one (destroy it on the message thread).
     std::unique_ptr<juce::AudioPluginInstance> swapPlugin (Track&, std::unique_ptr<juce::AudioPluginInstance>);
+
+    // The selected passage (selected track's input ticks), used by the
+    // dynamics buttons. No selection = the whole part.
+    bool hasSelection() const { return selectionEnd > selectionStart; }
+    vslp::Tick selectionStart = 0, selectionEnd = 0;
+    void setSelection (vslp::Tick start, vslp::Tick end);
+    void clearSelection();
 
     // Longest part, in seconds.
     double lengthSeconds() const;

@@ -321,3 +321,86 @@ TEST_CASE ("long notes swell with CC1 in crossfading presets and with CC11 in Ve
     CHECK (range (a.part, 1, 1200, 3000) > 0);
     CHECK (range (b.part, 11, 600, 3000) > 0);
 }
+
+TEST_CASE ("dynamic markings set the level: pp is softer than ff")
+{
+    Settings s;
+    s.presetType = PresetType::VelXF;
+    const auto part = makePart (line (16, 480));
+    const Tick end = part.notes.back().end;
+
+    const auto soft = finesse (part, violinProfile(), s, { { Marking::Kind::Dynamic, 0, end, 0 } });
+    const auto loud = finesse (part, violinProfile(), s, { { Marking::Kind::Dynamic, 0, end, 5 } });
+    for (size_t i = 0; i < soft.part.notes.size(); ++i)
+        CHECK (controllerAt (soft.part, 1, soft.part.notes[i].start) + 40 < controllerAt (loud.part, 1, loud.part.notes[i].start));
+}
+
+TEST_CASE ("a crescendo grows across its passage and keeps its arrival level")
+{
+    Settings s;
+    s.presetType = PresetType::VelXF;
+    s.phraseArchAmount = 0.0;
+    s.highLoudAmount = 0.0;
+    s.durationContrastAmount = 0.0;
+
+    std::vector<Note> notes;
+    for (int i = 0; i < 24; ++i)
+        notes.push_back (note (i * 480, 480, 72, 70));
+    const auto part = makePart (notes);
+
+    const auto plain = finesse (part, violinProfile(), s);
+    const auto cresc = finesse (part, violinProfile(), s, { { Marking::Kind::Crescendo, 4 * 480, 12 * 480, 0 } });
+
+    auto at = [] (const Result& r, size_t i) { return controllerAt (r.part, 1, r.part.notes[i].start); };
+    CHECK (at (cresc, 2) == at (plain, 2));          // before: unchanged
+    CHECK (at (cresc, 8) > at (plain, 8));           // during: louder
+    CHECK (at (cresc, 11) > at (cresc, 6));          // growing
+    CHECK (at (cresc, 20) >= at (plain, 20) + 20);   // after: stays at the arrival level
+}
+
+TEST_CASE ("human pauses: a bow jumping over a string gets a moment, and can be turned off")
+{
+    InstrumentProfile cello;
+    cello.family = Family::Strings;
+    cello.lowestNote = 36;
+    cello.highestNote = 84;
+    cello.openStrings = { 36, 43, 50, 57 }; // C G D A
+
+    // C string (low C, D) to A string (A, B) and back, connected eighths.
+    std::vector<Note> notes = { note (0, 240, 36), note (240, 240, 38), note (480, 240, 59), note (720, 240, 57),
+                                note (960, 240, 38), note (1200, 240, 36), note (1440, 240, 38), note (1680, 240, 36) };
+    Settings s;
+    s.humanizeTimingMs = 0.0;
+    const auto with = finesse (makePart (notes), cello, s);
+    CHECK (with.part.notes[1].end < with.part.notes[2].start); // C string -> A string: a gap
+    CHECK (with.part.notes[0].end > with.part.notes[1].start); // same string: connected
+    CHECK (with.report.pauses >= 2);
+
+    s.humanPauses = false;
+    const auto without = finesse (makePart (notes), cello, s);
+    CHECK (without.part.notes[1].end > without.part.notes[2].start);
+    CHECK (without.report.pauses == 0);
+}
+
+TEST_CASE ("a new dynamic replaces the part of an old one it covers")
+{
+    std::vector<Marking> m;
+    addMarking (m, { Marking::Kind::Dynamic, 0, 9600, 1 });      // p, whole part
+    addMarking (m, { Marking::Kind::Dynamic, 1920, 3840, 4 });   // f, bars 2-3
+    addMarking (m, { Marking::Kind::Crescendo, 3840, 5760, 0 }); // hairpins don't cut dynamics
+    REQUIRE (m.size() == 4);
+    CHECK (m[0].level == 1);
+    CHECK (m[0].end == 1920);
+    CHECK (m[1].level == 4);
+    CHECK ((m[2].kind == Marking::Kind::Dynamic));
+    CHECK (m[2].start == 3840);
+
+    addMarking (m, { Marking::Kind::Diminuendo, 4800, 6000, 0 }); // replaces the crescendo
+    int hairpins = 0;
+    for (const auto& x : m)
+        hairpins += x.kind != Marking::Kind::Dynamic;
+    CHECK (hairpins == 1);
+
+    clearMarkings (m, 0, 1000);
+    CHECK (m.front().start >= 1000);
+}

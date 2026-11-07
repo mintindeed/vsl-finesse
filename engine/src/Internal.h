@@ -23,6 +23,9 @@ struct NoteInfo
     bool phraseStart = false;
     bool phraseEnd = false;
     bool breathAfter = false; // phrase split for breath (winds/brass), no written rest
+    double pauseAfterMs = 0.0; // human pause taken from the end of this note
+    int string = -1;           // string instruments: index into profile.openStrings
+    double hairpin = 0.0;      // crescendo/diminuendo offset at the onset
     double phrasePosition = 0.0; // 0..1 within the phrase (by time)
 
     // Dynamics, 0..1 scale (1 = MIDI 127).
@@ -43,6 +46,20 @@ struct Context
     std::vector<std::vector<int>> articulationKeys;
     std::vector<Phrase> phrases;
     Report report;
+
+    // User markings, in seconds.
+    struct TimedMarking
+    {
+        Marking::Kind kind;
+        double start, end;
+        int level;
+    };
+    std::vector<TimedMarking> markings;
+
+    // Dynamic level from Dynamic markings at time t, if any covers it.
+    bool markedLevel (double t, double& level) const;
+    // Offset from crescendos / diminuendos at time t (0 if none).
+    double hairpinAt (double t) const;
 
     const Articulation& articulationOf (size_t note) const { return articulations[(size_t) info[note].articulation]; }
 
@@ -83,6 +100,7 @@ double smoothstep (double x);
 void assignArticulations (Context&);
 void analyze (Context&);
 void shapeDynamics (Context&);
+void findPauses (Context&);
 void applyTiming (Context&);
 void writeControllers (Context&);
 

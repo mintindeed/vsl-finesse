@@ -10,6 +10,38 @@
 namespace vslp
 {
 
+// A dynamic marking the user puts on a passage, like in a score.
+//  - Dynamic: pp..ff for the passage (level 0 = pp ... 5 = ff).
+//  - Crescendo / Diminuendo: grow two dynamic steps louder / softer across
+//    the passage, and stay there until the next dynamic marking.
+struct Marking
+{
+    enum class Kind
+    {
+        Dynamic,
+        Crescendo,
+        Diminuendo
+    };
+
+    Kind kind = Kind::Dynamic;
+    Tick start = 0;
+    Tick end = 0;
+    int level = 3; // Dynamic only: 0 pp, 1 p, 2 mp, 3 mf, 4 f, 5 ff
+};
+
+// Adds a marking, replacing what was there: a dynamic replaces the dynamics
+// it overlaps (trimming or splitting them), a crescendo/diminuendo replaces
+// the hairpins it overlaps.
+void addMarking (std::vector<Marking>& markings, const Marking& marking);
+
+// Removes markings overlapping [start, end).
+void clearMarkings (std::vector<Marking>& markings, Tick start, Tick end);
+
+constexpr int numDynamicLevels = 6;
+const char* dynamicSymbol (int level);   // "pp"
+const char* dynamicMeaning (int level);  // "pianissimo, very soft"
+double dynamicValue (int level);         // 0..1 (x127 = CC1 / velocity)
+
 struct Phrase
 {
     size_t firstNote = 0; // indices into Result::part.notes
@@ -36,6 +68,8 @@ struct Report
     int overlapsTrimmed = 0;
     int controllersRemoved = 0;
     int legatoConnections = 0;
+    int breaths = 0;     // wind/brass breaths added
+    int pauses = 0;      // other human pauses (phrase ends, string crossings)
     int keyswitchesIn = 0;
     std::vector<ArticulationUsage> articulations;
     std::vector<std::string> warnings;
@@ -56,6 +90,8 @@ struct Result
 Part ingest (const Part& input, const InstrumentProfile& profile, const Settings& settings, Report& report);
 
 // The whole pipeline: ingest -> analyze -> dynamics -> timing -> controller curves.
-Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings);
+// Markings use the input part's ticks.
+Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings,
+                const std::vector<Marking>& markings = {});
 
 } // namespace vslp

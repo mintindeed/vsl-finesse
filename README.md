@@ -28,10 +28,14 @@ brew install cmake         # once
 
    The app remembers your last choice for new tracks. Notes written connected always overlap slightly, which triggers legato transitions in legato patches.
 5. **Play** (space bar). **Original / Finessed** (or the T key) switches between the untouched file and the performance, at the same position.
-6. Adjust the **Performance** sliders. Changes apply immediately (double-click a slider to reset it). **New variation** re-rolls the humanization.
+6. **Shape it with buttons:**
+   - **Dynamics** (the strip above the notes): drag across some bars to select them, then click **pp p mp mf f ff**, **cresc.** or **dim.** With nothing selected, a button applies to the whole part. Hover a button to see what it means. A crescendo or diminuendo grows two dynamic steps and stays there until the next marking. Right-click a marking to remove it, or use **Clear**. Esc or a click drops the selection.
+   - **Character** (right panel): **Plain**, **Expressive** or **Very expressive**.
+   - **Human pauses** (on by default): breaths in long wind and brass phrases, a moment for the bow to cross strings, and a tiny lift where a phrase ends without a rest. Pauses come out of the end of the earlier note, so the beat never moves.
+   - **New variation** re-rolls the small human variation. **Fine-tune...** opens the individual rules behind the buttons, if you ever want them.
 7. **Export Finessed MIDI...** writes `Name (Finessed).mid` next to the original. Drag it into Logic.
 
-**File → Save Session** stores the tracks, settings, and each plug-in with its loaded preset.
+**File → Save Session** stores the tracks, settings, dynamics markings, and each plug-in with its loaded preset.
 
 ### What the engine does
 

@@ -4,6 +4,7 @@
 
 #include <juce_core/juce_core.h>
 
+#include <vslp/Engine.h>
 #include <vslp/Profile.h>
 #include <vslp/Settings.h>
 
@@ -21,6 +22,9 @@ bool saveProfile (const InstrumentProfile&, const juce::File&, std::string& erro
 juce::var settingsToJson (const Settings&);
 // Missing keys keep their current values in `inOut`.
 void settingsFromJson (const juce::var&, Settings& inOut);
+
+juce::var markingsToJson (const std::vector<Marking>&);
+std::vector<Marking> markingsFromJson (const juce::var&);
 
 bool loadSettings (const juce::File&, Settings& inOut, std::string& error);
 bool saveSettings (const Settings&, const juce::File&, std::string& error);

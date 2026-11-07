@@ -122,3 +122,14 @@ TEST_CASE ("built-in profiles load")
     REQUIRE (flute != nullptr);
     CHECK (flute->maxBreathSeconds > 0.0);
 }
+
+TEST_CASE ("markings round-trip through JSON")
+{
+    std::vector<Marking> m = { { Marking::Kind::Dynamic, 0, 1920, 1 }, { Marking::Kind::Crescendo, 1920, 3840, 0 } };
+    const auto back = io::markingsFromJson (io::markingsToJson (m));
+    REQUIRE (back.size() == 2);
+    CHECK ((back[0].kind == Marking::Kind::Dynamic));
+    CHECK (back[0].level == 1);
+    CHECK ((back[1].kind == Marking::Kind::Crescendo));
+    CHECK (back[1].end == 3840);
+}

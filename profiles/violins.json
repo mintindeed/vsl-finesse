@@ -7,6 +7,12 @@
     "G2",
     "G6"
   ],
+  "strings": [
+    "G2",
+    "D3",
+    "A3",
+    "E4"
+  ],
   "dynamicsCC": 1,
   "expressionCC": 11,
   "preservedControllers": [],

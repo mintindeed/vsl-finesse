@@ -49,7 +49,7 @@ void applyTiming (Context& ctx)
         // Notes written connected overlap slightly: legato patches play their
         // transitions, mono patches hand over to the next note. Same-pitch
         // notes can't overlap (the note-off would cut the new note).
-        const bool connect = ! info[i].breathAfter
+        const bool connect = info[i].pauseAfterMs <= 0.0
                              && next.pitch != note.pitch
                              && info[i].gapAfter * 1000.0 <= s.legatoMaxGapMs;
         if (connect)
@@ -68,12 +68,13 @@ void applyTiming (Context& ctx)
         if (next.pitch == note.pitch)
             latestEnd = next.start - ticks (next.start, s.repeatedNoteGapMs);
 
-        // A breath before the next phrase (winds and brass).
-        if (info[i].breathAfter)
+        // Human pauses (breaths, phrase lifts, string crossings) come out of
+        // this note's end, keeping at least 60% of it.
+        if (info[i].pauseAfterMs > 0.0)
         {
-            const Tick breath = ticks (note.start, s.breathMs);
+            const Tick pause = ticks (note.start, info[i].pauseAfterMs);
             const Tick keep = Tick (double (original[i].end - original[i].start) * 0.6);
-            latestEnd = std::min (latestEnd, std::max (note.start + keep, next.start - breath));
+            latestEnd = std::min (latestEnd, std::max (note.start + keep, next.start - pause));
         }
 
         note.end = std::min (note.end, latestEnd);
