@@ -49,6 +49,15 @@ What we know from the Studio Special Edition trumpet preset (Synchron Player scr
 
 Waiting on: two files from "Save instrument details to Desktop" (instrument menu on the track), one with Long notes > Marcato selected in Synchron and one with Staccato. Compare them to find where Synchron stores the tree and the current selection (state blob, parameters or program names). If the tree is readable, parse it; if not, fall back to a picker built from the keys used in the file plus names the user types once per instrument profile.
 
+**Synchron Player's state is readable** (found from two "Save instrument details" dumps, Synchron Player AU 1.1.0, November 2026):
+- The AU state is a binary plist. Its `PluginState` entry is a Zstandard frame (`28 b5 2f fd`) holding plain JSON: `{"version": 0, "data": {...}}`. (The `data` entry next to it is the AU parameter dump.)
+- `data.currentPreset` is the preset path, e.g. `Studio Special Editions/01 Solo strings/02 VelXF - MOD/01 Violin I - VelXF`. Flow presets start with `$FLOW_SE/`.
+- `data.meta.gui.currentSkin` is the view: `"SynchronPlayer"` for Precision, `"Flow"` for Flow. A Flow preset also carries `data.custom.sampler.flow` and `data.meta.gui.flow`; in Precision both are absent or null.
+- The articulation tree is `data.custom.sampler.rootNode`: `nodes` (each with a `title`, e.g. Short notes, Long notes, Legato, and its own children) and `currentNodeIndex` for the current selection.
+- CC assignments are in `data.custom.paramControl.mappings` (e.g. `nodeXFade0: {source: "cc3"}`). They differ between Flow and Precision presets of the same instrument, so the engine's CC1/velocity strategy only holds for the Precision presets.
+
+JUCE has no Zstandard, so reading this needs the zstd library (BSD licence).
+
 The picker should follow the dynamics buttons' model: drag across bars to select, then choose; with no selection it applies to the whole part. Keyswitches it writes must still land just before the notes they switch.
 
 ### Smarter breaths
