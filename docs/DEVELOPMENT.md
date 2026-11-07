@@ -100,7 +100,7 @@ Never tried on a Mac with Synchron Player yet, so any report helps: whether Sync
 
 ### What to send
 
-Open an issue with: the instrument details file, the preset's path, your Synchron Player version, macOS version and DAW, a short MIDI file that shows the problem, and what you heard against what you expected. A preset whose tree looks different from the ones in [Synchron Player's saved state](#synchron-players-saved-state) becomes a test fixture.
+Open an issue with: the instrument details file, the preset's path, your Synchron Player version, macOS version and DAW, a short MIDI file that shows the problem, the Finessed MIDI the app exported from it (before and after, if you changed something), and what you heard against what you expected. The maintainer may not have your library, so this is what your report or pull request will be judged on (see CONTRIBUTING, [Evidence the maintainer can't produce](../CONTRIBUTING.md#evidence-the-maintainer-cant-produce)). A preset whose tree looks different from the ones in [Synchron Player's saved state](#synchron-players-saved-state) becomes a test fixture.
 
 ## Command line tool
 

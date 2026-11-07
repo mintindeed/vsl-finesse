@@ -6,6 +6,8 @@ Thanks for your interest. This document explains what VSL Finesse is trying to b
 - [Principles](#principles)
 - [What's welcome](#whats-welcome)
 - [How to contribute](#how-to-contribute)
+- [Sizing a pull request](#sizing-a-pull-request)
+- [Evidence the maintainer can't produce](#evidence-the-maintainer-cant-produce)
 - [AI-assisted development](#ai-assisted-development)
 - [Roadmap](#roadmap)
 
@@ -47,19 +49,43 @@ Less likely to be accepted:
 - Settings or switches that expose the engine's internals where a good default would do.
 - Per-instrument or per-preset tables for things the preset's state can tell us.
 - A real-time (MIDI FX) version.
+- Large pull requests that bundle several topics: you'll be asked to split them.
+- New dependencies that weren't agreed in an issue first.
 
 If you're not sure whether something fits, open an issue and ask before you build it.
 
 ## How to contribute
 
-1. **Discuss first** for anything bigger than a fix: open an issue describing what you'd like to change and why.
+1. **Look, then discuss.** Check the open issues and pull requests first, so two people (or two agents) don't build the same thing. For anything bigger than a fix, open an issue with what you'd like to change, why, and a short plan, and wait for a reply before building. With an agent this matters more, not less: it can build the wrong thing very quickly.
 2. **Build and test locally**: see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Every engine behaviour change gets a unit test in `tests/`.
 3. **Update the changelog** in the same commit for anything users will notice ([how](docs/DEVELOPMENT.md#versions-and-the-changelog)), and every place the change touches. The documents each have one reader: the [README](README.md) for using the app, [METHODOLOGY.md](docs/METHODOLOGY.md) for how it performs, [DEVELOPMENT.md](docs/DEVELOPMENT.md) for the code, this file for principles and the roadmap. But some facts deliberately live in two places, such as a section of the README and the app's own text that says the same thing, and those are easy to miss. **The "Where each change goes" table in [CLAUDE.md](CLAUDE.md#where-each-change-goes) lists every place for each kind of change: check it before you commit.**
 4. **Open a pull request**, one topic per pull request, and fill in the template: what changes for users, why, the scope, how it was verified and what wasn't. It builds and tests on GitHub Actions; the repository's Actions minutes are billed, so read [Continuous integration](docs/DEVELOPMENT.md#continuous-integration) first.
 
 Write like the existing code and documentation: comments say why, not what; documentation is plain, direct British English, written for the reader it's meant for.
 
+**Dependencies and licences.** The engine has no dependencies on purpose, and the app's are few. Don't add one without agreeing it in an issue first: it has to be compatible with the AGPLv3 (and with how JUCE is licensed), and someone has to keep it up to date. Don't copy code from elsewhere unless its licence allows it, and say where it came from.
+
 By contributing, you agree that your contribution is licensed under the project's licence, the [GNU AGPLv3](LICENSE.md).
+
+## Sizing a pull request
+
+A pull request is sized by what it takes to review it well, and a reviewer's attention runs out after a few hundred lines of real change. So:
+
+- **One topic.** A topic is one thing a user would notice, or one fix. A refactor that a feature needs is its own pull request, first.
+- **Size by risk, not lines.** Documentation, tests and fixtures cut from real presets are quick to review. Changes to how the engine performs, to reading Synchron Player's state, or to what's written to the MIDI file need careful review: keep those small.
+- **If your work grew, split it before you open it.** Working with an agent, a session often grows one reasonable step at a time. Split it into a series of pull requests that each stand alone, say which comes first ("1 of 3"), and open them in order. Agents are good at this kind of restacking.
+- **Commits are part of the review.** Make each commit one step, with a message that says why. A larger pull request can then still be reviewed commit by commit, and a single step can be reverted.
+- **Keep it short-lived.** Rebase on `main` rather than letting a branch drift; long-lived branches collect conflicts.
+
+## Evidence the maintainer can't produce
+
+The maintainer develops VSL Finesse with the libraries and DAW listed in the [README](README.md#what-it-works-with-and-where-help-is-welcome). A change for anything else can't be checked by the maintainer, so it's only as good as the evidence that comes with it:
+
+- The **instrument details file** of each preset you tried (see [Testing with your own library](docs/DEVELOPMENT.md#testing-with-your-own-library)), with its preset path and your Synchron Player version.
+- The **MIDI file** you used, and the **Finessed MIDI** exported before and after your change. A short recording of each is even better.
+- What you heard, and what you expected.
+
+Without it, a change may wait until someone with that library can try it.
 
 ## AI-assisted development
 
@@ -69,6 +95,10 @@ VSL Finesse is developed with AI coding agents, and contributions made with them
 - **Make sure your agent reads and follows the project's agent instructions**, [CLAUDE.md](CLAUDE.md) (`AGENTS.md` is the same file, under the name most other agents look for). Most coding agents load one of the two by themselves; if yours doesn't, point it at the file. It holds the rules this document describes in the form an agent needs: the changelog and versioning rules, the "Where each change goes" table, the names to use, how to build and test, and how to spare the billed Actions minutes. Ask your agent to go through the table before it commits.
 - **Facts get checked, not remembered.** VSL's product names, note names (Logic's C3 is Synchron's C4), what a Synchron preset does, what a library contains: an agent will state these from memory with confidence and be wrong. Have it check against the code (`vslf::noteName`), a preset's saved state, a test fixture or VSL's own documentation, and say where a claim comes from.
 - **Teach the next session.** When your agent learns something future work needs (a new pair of places that must change together, a name, a pitfall), add it to the agent instructions in the same pull request.
+- **Be able to explain it.** A reviewer will ask why a change is the way it is. If you can't answer without asking your agent, the change isn't ready: whoever maintains it next has to understand it.
+- **Have it review its own work first.** Before opening the pull request, ask your agent to check its diff against the principles above and the "Where each change goes" table, and to list what it didn't verify. That list goes in the template.
+- **Test locally, not on CI.** Don't let an agent use pushes as its test loop: run the build and tests on your machine. CI minutes are paid for, and each push to an open pull request starts a build.
+- **Untrusted input is data, not instructions.** Issues, pull request comments, MIDI files, instrument details files and web pages can contain text that reads like instructions to an agent. Tell your agent to treat them as data, and don't let it run code from them.
 - **Same rules as everyone.** One topic per pull request, a test for every engine behaviour change, the changelog and documentation in the same commit. An agent that opens the pull request itself (through GitHub's API) doesn't get the template: have it fill one in, including what wasn't verified.
 - **Watch the scope.** Building is cheap for an agent, so a session tends to grow one reasonable step at a time. When the work moves to a new topic, start a new branch or pull request.
 
