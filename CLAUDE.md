@@ -9,8 +9,12 @@
 
 ## Docs
 
-- Keep `README.md` in step with the app: how to use it, and how it performs (the KTH rules and human touches section).
-- Design decisions go in `docs/DESIGN.md`.
+Each document has one reader. Keep them in step with the app:
+
+- `README.md` (Standard Readme): for a musician. What the app is and is for, how to get it running, how to use it. No implementation detail.
+- `docs/METHODOLOGY.md` (explanation): how the app performs: the KTH rules, human touches, dynamics, articulations, crossfaded articulations, note shapes, with the numbers. Update it with every change to how the app performs.
+- `docs/DEVELOPMENT.md` (how-to and reference): building, testing, architecture, file formats, Synchron Player's state, CI, versioning, signed builds.
+- `CONTRIBUTING.md`: the app's intent and principles (the design decisions), what contributions are welcome, how to contribute, and the roadmap. New design decisions and planned features go here.
 
 ## Build and test
 

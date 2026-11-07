@@ -10,7 +10,7 @@
 
 // Reads and patches Synchron Player's saved state (the Audio Unit's state as
 // the host stores it). The state is a binary property list whose
-// "PluginState" entry is Zstandard-compressed JSON. See docs/DESIGN.md.
+// "PluginState" entry is Zstandard-compressed JSON. See docs/DEVELOPMENT.md.
 namespace vslf::io
 {
     // The JSON inside a Synchron Player state, or nothing if the state isn't
