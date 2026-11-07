@@ -33,6 +33,15 @@ Before committing, check every place listed for the kind of change you made. Sev
 | A design decision or principle | CONTRIBUTING "Principles". |
 | A planned feature, or one that shipped | CONTRIBUTING "Roadmap": add it, or remove it once built (it's then documented in README and METHODOLOGY). |
 | Versioning, changelog or CI rules | **both** this file and DEVELOPMENT ("Versions and the changelog", "Continuous integration"). CONTRIBUTING only links to them. |
+| How contributors and their agents are expected to work | **both** this file and CONTRIBUTING "AI-assisted development". |
+
+### Working attentively
+
+This file is for every agent working on the repository (`AGENTS.md` is a link to it). CONTRIBUTING "AI-assisted development" says the same to the people directing them.
+
+- Go through the "Where each change goes" table before every commit.
+- Check facts instead of recalling them: VSL's product names, note names, what a Synchron preset does, what a library contains. Check against the code, a preset's saved state, a test fixture or VSL's own documentation, and say where a claim comes from. A product name and a note name stated from memory have both been wrong before.
+- When you learn something future work needs (a new pair of places that must change together, a name, a pitfall), add it to this file in the same commit.
 
 ### Names
 
