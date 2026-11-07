@@ -19,4 +19,4 @@
 
 ## GitHub Actions minutes
 
-The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. Docs-only changes (`*.md`, `docs/`) don't start a build, and a newer push cancels a running build on the same branch.
+The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Builds run on pull requests only (not on plain pushes or merges to `main`), and every push to a branch with an open pull request starts one. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. Docs-only changes (`*.md`, `docs/`) don't start a build, and a newer push cancels a running build on the same pull request.

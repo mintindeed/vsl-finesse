@@ -1,12 +1,10 @@
 name: Build
 
-# Push only: a pull request from a branch in this repository shows the checks
-# of its branch's push build, so a pull_request trigger would build every
-# commit twice. (Pull requests from other branch names or forks don't build;
-# run the workflow by hand from the Actions tab if one needs it.)
+# Pull requests only: pushes to a branch build once it has a pull request
+# open, and merging to main doesn't start another build. Run the workflow by
+# hand from the Actions tab to build anything else.
 on:
-  push:
-    branches: [main, "claude/**"]
+  pull_request:
     # Documentation-only changes don't need a (billed) build.
     paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   workflow_dispatch:
