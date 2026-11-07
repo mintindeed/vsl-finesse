@@ -16,12 +16,23 @@ brew install cmake         # once
 ./scripts/build-mac.sh --open
 ```
 
+## Permissions macOS asks for
+
+The first time it starts, the app shows a welcome screen explaining these (open it again from **Help → Welcome and Permissions...**). Instrument plug-ins run inside the app, so macOS asks about anything Synchron Player does in VSL Finesse's name:
+
+- **Files on a removable volume:** Synchron Player reads its samples from your Vienna library, often on an external drive. Allow it, or those instruments play silence.
+- **Files in your Documents folder:** new sessions are saved there by default, and Synchron Player may keep presets and settings there.
+- **Find devices on your local network:** asked by Vienna's software when Synchron Player loads. VSL Finesse itself doesn't use the network. You can deny it.
+- **Receive keystrokes from any app** (Input Monitoring): asked by a plug-in. VSL Finesse only reads the keyboard while its own window is in front, and doesn't need this. You can deny it.
+
+You can change your answers in System Settings → Privacy & Security.
+
 ## Using it
 
 1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.
-2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins). The profile's range decides which notes are keyswitches: anything outside the playable range.
-3. **Choose instrument...** on the track and pick Synchron Player (Vienna instruments are listed first). Only the instrument you pick is loaded. **Edit** opens its window, where you load your Special Edition preset.
-4. **Pick the Synchron preset folder** your preset came from (right panel): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. That one choice decides how dynamics are written:
+2. **Pick the instrument profile** (right panel). The app guesses it from the file name ("Violins.mid" → Violins), and again from the preset you load in Synchron Player (step 3). The profile's range decides which notes are keyswitches: anything outside the playable range.
+3. **Synchron Player** loads on the track by itself when you open a MIDI file, if it's installed. **Edit** opens its window in the **Precision** view, where you load your Special Edition preset. Use the Precision presets: the Flow presets assign their controllers differently, so the dynamics the app writes may not land where it expects. Once you load a preset, the instrument profile and the Synchron preset folder (step 4) follow it, e.g. "02 VelXF - MOD/01 Violin I - VelXF" sets Violins and VelXF - MOD. You can still change either by hand; they only follow Synchron again when you load a different preset. To use another instrument, click the instrument button on the track (Vienna instruments are listed first). Only the instrument you pick is loaded.
+4. **Check the Synchron preset folder** your preset came from (right panel; it's set for you when you load a Special Edition preset in Synchron): **VelXF sus - MOD**, **VelXF - MOD** or **Velocity**. That one choice decides how dynamics are written:
    - **VelXF sus - MOD:** long notes crossfade with CC1, short notes follow velocity
    - **VelXF - MOD:** every note crossfades with CC1. Velocities are left exactly as written, because in these presets velocity can pick an attack (e.g. Marcato's sustain/staccato attack)
    - **Velocity:** velocity carries the dynamics, and no CC1 is written
@@ -30,7 +41,7 @@ brew install cmake         # once
 5. **Play** (space bar). **Original / Finessed** (or the T key) switches between the untouched file and the performance, at the same position.
 6. **Shape it with buttons:**
    - **Dynamics** (the strip above the notes): drag across some bars to select them, then click **pp p mp mf f ff**, **cresc.** or **dim.** With nothing selected, a button applies to the whole part. Hover a button to see what it means. A crescendo or diminuendo grows two dynamic steps and stays there until the next marking. Right-click a marking to remove it, or use **Clear**. Esc or a click drops the selection.
-   - **Character** (right panel): **Plain**, **Expressive** or **Very expressive**.
+   - **Character** (right panel): **Simple**, **Expressive** or **Very expressive**.
    - **Human pauses** (on by default): breaths in long wind and brass phrases, a moment for the bow to cross strings, and a tiny lift where a phrase ends without a rest. Pauses come out of the end of the earlier note, so the beat never moves.
    - **New variation** re-rolls the small human variation. **Fine-tune...** opens the individual rules behind the buttons, if you ever want them.
 7. **Export Finessed MIDI...** writes `Name (Finessed).mid` next to the original. Drag it into Logic.
@@ -54,7 +65,7 @@ The engine is built on the ideas of the **KTH rule system for music performance*
 | **Final ending** | Ease off at the end | The last note of each phrase tapers, with the strongest taper on the final note of the piece |
 | **Noise** | No two notes are exactly alike | Small random variation in timing and velocity (see below) |
 
-The **Character** buttons set how strongly the rules are applied together: **Plain**, **Expressive** (the default) or **Very expressive**.
+The **Character** buttons set how strongly the rules are applied together: **Simple**, **Expressive** (the default) or **Very expressive**.
 
 ### Human touches
 
@@ -147,4 +158,10 @@ profiles/ built-in instrument profiles
 docs/     design notes
 ```
 
-Built with [JUCE](https://juce.com) 9 (AGPLv3, or a commercial licence if you ever distribute the app closed-source).
+## Licence
+
+Copyright (C) 2026 Gabriel Koen.
+
+VSL Finesse is free software under the [GNU Affero General Public License, version 3](LICENSE.md) (AGPLv3): you can use, share and change it, and anything you pass on that's built from it has to be passed on under the same licence, with its source.
+
+It's AGPLv3 because it's built with [JUCE](https://juce.com) 9, which is offered under the AGPLv3 or a paid JUCE licence. It also uses [Zstandard](https://github.com/facebook/zstd) (BSD licence) to read Synchron Player's saved state.

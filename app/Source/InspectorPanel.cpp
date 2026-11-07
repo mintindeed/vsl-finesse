@@ -194,8 +194,8 @@ public:
         }
 
         // Character: one choice instead of the intensity slider.
-        const char* characterNames[] = { "Plain", "Expressive", "Very expressive" };
-        const char* characterTips[] = { "Plain: steady, gentle shaping - good for pads and backing lines",
+        const char* characterNames[] = { "Simple", "Expressive", "Very expressive" };
+        const char* characterTips[] = { "Simple: steady, gentle shaping - good for pads and backing lines",
                                         "Expressive: phrases rise and fall naturally (the default)",
                                         "Very expressive: bigger swells, phrase arches and tapers - good for exposed melodies" };
         for (int i = 0; i < 3; ++i)
@@ -280,6 +280,7 @@ public:
             return;
         fillProfileBox();
         pending = shownTrack->settings;
+        shownPresetType = pending.presetType;
         showSettings();
         refreshResult();
     }
@@ -293,6 +294,14 @@ public:
         {
             refreshAll();
             return;
+        }
+
+        // The preset folder can change from outside (it follows the preset
+        // loaded in Synchron Player): show it.
+        if (t->settings.presetType != shownPresetType)
+        {
+            shownPresetType = pending.presetType = t->settings.presetType;
+            showSettings();
         }
 
         fillProfileBox();
@@ -503,6 +512,7 @@ private:
     InspectorPanel& owner;
     Track* shownTrack = nullptr;
     vslf::Settings pending;
+    vslf::PresetType shownPresetType = vslf::PresetType::VelXFSustain;
     bool inLayout = false;
 
     SectionHeader instrumentHeader { "Instrument" }, articulationHeader { "Articulations" },

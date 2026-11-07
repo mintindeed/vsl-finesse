@@ -5,7 +5,27 @@ juce_add_gui_app (VSLFinesseApp
     VERSION "${PROJECT_VERSION}"
     DOCUMENT_EXTENSIONS mid midi vslfsession vslpsession
     HARDENED_RUNTIME_ENABLED FALSE
-    APP_SANDBOX_ENABLED FALSE)
+    APP_SANDBOX_ENABLED FALSE
+    # Shown in macOS's own permission prompts. Instrument plug-ins run inside
+    # the app, so most of these are asked on Synchron Player's behalf.
+    # No semicolons in the text: CMake splits the string at them.
+    PLIST_TO_MERGE [[
+<plist>
+  <dict>
+    <key>NSRemovableVolumesUsageDescription</key>
+    <string>Synchron Player, which runs inside VSL Finesse, reads its samples from your Vienna library, often on an external drive.</string>
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>VSL Finesse saves sessions in Documents unless you choose another folder, and Synchron Player may keep presets and settings there.</string>
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>VSL Finesse opens MIDI files and sessions you keep on the Desktop, and saves instrument details there when you ask.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>VSL Finesse opens MIDI files and sessions you keep in Downloads.</string>
+    <key>NSNetworkVolumesUsageDescription</key>
+    <string>VSL Finesse opens MIDI files and sessions, and Synchron Player reads samples, from network drives.</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>VSL Finesse doesn't use the network itself. Vienna's software inside it asks for this. You can deny it.</string>
+  </dict>
+</plist>]])
 
 target_sources (VSLFinesseApp PRIVATE
     Source/AppContext.cpp
@@ -18,7 +38,8 @@ target_sources (VSLFinesseApp PRIVATE
     Source/PlaybackSequence.cpp
     Source/ProfileLibrary.cpp
     Source/Session.cpp
-    Source/TrackListView.cpp)
+    Source/TrackListView.cpp
+    Source/WelcomeOverlay.cpp)
 
 target_compile_definitions (VSLFinesseApp PRIVATE
     JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:VSLFinesseApp,JUCE_PRODUCT_NAME>"
