@@ -34,7 +34,7 @@ Before committing, check every place listed for the kind of change you made. Sev
 | A design decision or principle | CONTRIBUTING "Principles". |
 | A planned feature, or one that shipped | CONTRIBUTING "Roadmap": add it, or remove it once built (it's then documented in README and METHODOLOGY). |
 | Versioning, changelog or CI rules | **both** this file and DEVELOPMENT ("Versions and the changelog", "Continuous integration"). CONTRIBUTING only links to them. |
-| How contributors and their agents are expected to work | **both** this file and CONTRIBUTING "AI-assisted development". |
+| How contributors and their agents are expected to work | **both** this file and CONTRIBUTING "AI-assisted development", and the pull request template (`.github/pull_request_template.md`) if it changes what a pull request has to show. |
 
 ### Working attentively
 
@@ -43,6 +43,8 @@ This file is for every agent working on the repository (`AGENTS.md` is a link to
 - Go through the "Where each change goes" table before every commit.
 - Check facts instead of recalling them: VSL's product names, note names, what a Synchron preset does, what a library contains. Check against the code, a preset's saved state, a test fixture or VSL's own documentation, and say where a claim comes from. A product name and a note name stated from memory have both been wrong before.
 - When you learn something future work needs (a new pair of places that must change together, a name, a pitfall), add it to this file in the same commit.
+- When a request starts a new topic, say so and propose where to split (a new branch or pull request) before carrying on in the same one. Scope that grows one reasonable step at a time is how a pull request ends up too big to review.
+- When you open a pull request, fill in `.github/pull_request_template.md` yourself: GitHub only applies it to pull requests opened in its web interface, not through the API. Be plain about what wasn't verified, above all what hasn't been tried with Synchron Player on a Mac.
 
 ### Names
 

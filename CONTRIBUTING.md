@@ -55,7 +55,7 @@ If you're not sure whether something fits, open an issue and ask before you buil
 1. **Discuss first** for anything bigger than a fix: open an issue describing what you'd like to change and why.
 2. **Build and test locally**: see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Every engine behaviour change gets a unit test in `tests/`.
 3. **Update the changelog** in the same commit for anything users will notice ([how](docs/DEVELOPMENT.md#versions-and-the-changelog)), and every place the change touches. The documents each have one reader: the [README](README.md) for using the app, [METHODOLOGY.md](docs/METHODOLOGY.md) for how it performs, [DEVELOPMENT.md](docs/DEVELOPMENT.md) for the code, this file for principles and the roadmap. But some facts deliberately live in two places, such as a section of the README and the app's own text that says the same thing, and those are easy to miss. **The "Where each change goes" table in [CLAUDE.md](CLAUDE.md#where-each-change-goes) lists every place for each kind of change: check it before you commit.**
-4. **Open a pull request**, one topic per pull request. It builds and tests on GitHub Actions; the repository's Actions minutes are billed, so read [Continuous integration](docs/DEVELOPMENT.md#continuous-integration) first.
+4. **Open a pull request**, one topic per pull request, and fill in the template: what changes for users, why, the scope, how it was verified and what wasn't. It builds and tests on GitHub Actions; the repository's Actions minutes are billed, so read [Continuous integration](docs/DEVELOPMENT.md#continuous-integration) first.
 
 Write like the existing code and documentation: comments say why, not what; documentation is plain, direct British English, written for the reader it's meant for.
 
@@ -69,7 +69,8 @@ VSL Finesse is developed with AI coding agents, and contributions made with them
 - **Make sure your agent reads and follows the project's agent instructions**, [CLAUDE.md](CLAUDE.md) (`AGENTS.md` is the same file, under the name most other agents look for). Most coding agents load one of the two by themselves; if yours doesn't, point it at the file. It holds the rules this document describes in the form an agent needs: the changelog and versioning rules, the "Where each change goes" table, the names to use, how to build and test, and how to spare the billed Actions minutes. Ask your agent to go through the table before it commits.
 - **Facts get checked, not remembered.** VSL's product names, note names (Logic's C3 is Synchron's C4), what a Synchron preset does, what a library contains: an agent will state these from memory with confidence and be wrong. Have it check against the code (`vslf::noteName`), a preset's saved state, a test fixture or VSL's own documentation, and say where a claim comes from.
 - **Teach the next session.** When your agent learns something future work needs (a new pair of places that must change together, a name, a pitfall), add it to the agent instructions in the same pull request.
-- **Same rules as everyone.** One topic per pull request, a test for every engine behaviour change, the changelog and documentation in the same commit.
+- **Same rules as everyone.** One topic per pull request, a test for every engine behaviour change, the changelog and documentation in the same commit. An agent that opens the pull request itself (through GitHub's API) doesn't get the template: have it fill one in, including what wasn't verified.
+- **Watch the scope.** Building is cheap for an agent, so a session tends to grow one reasonable step at a time. When the work moves to a new topic, start a new branch or pull request.
 
 ## Roadmap
 
