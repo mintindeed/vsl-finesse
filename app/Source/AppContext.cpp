@@ -5,6 +5,7 @@
 #include <SynchronState.h>
 
 #include <algorithm>
+#include <utility>
 
 // ---------------------------------------------------------------------------
 class AppContext::PluginWindow : public juce::DocumentWindow
@@ -354,6 +355,8 @@ void AppContext::loadPlugin (Track& t, const juce::PluginDescription& desc,
             destroyPlugin (session.swapPlugin (*track, std::move (instance)));
             track->hasPlugin = true;
             track->synchronPreset = presetPath;
+            if (! isSynchronPlayer (desc))
+                warnOtherInstrument (desc.name);
 
             if (callback)
                 callback ({});
@@ -377,6 +380,37 @@ void AppContext::loadDefaultInstrument (Track& t)
             return;
         }
     }
+
+    warnSynchronMissing();
+}
+
+bool AppContext::isSynchronInstalled() const
+{
+    for (const auto& d : instrumentPlugins())
+        if (isSynchronPlayer (d))
+            return true;
+    return false;
+}
+
+void AppContext::warnSynchronMissing()
+{
+    if (std::exchange (warnedSynchronMissing, true))
+        return;
+    juce::AlertWindow::showMessageBoxAsync (
+        juce::MessageBoxIconType::WarningIcon, "Synchron Player isn't installed",
+        "VSL Finesse was designed to use VSL Synchron Player. Please install it: Vienna Assistant installs it with your "
+        "Vienna libraries.\n\nYou can pick another instrument from the track's instrument button, but other virtual "
+        "instruments may not behave as intended.");
+}
+
+void AppContext::warnOtherInstrument (const juce::String& name)
+{
+    if (std::exchange (warnedOtherInstrument, true))
+        return;
+    juce::AlertWindow::showMessageBoxAsync (
+        juce::MessageBoxIconType::WarningIcon, "Not Synchron Player",
+        "VSL Finesse was designed to use VSL Synchron Player. Other virtual instruments, such as " + name
+            + ", may not behave as intended.");
 }
 
 void AppContext::followSynchronPreset (Track& t)

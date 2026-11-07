@@ -7,6 +7,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- A welcome screen the first time the app starts: what the app is built for (Synchron Player), and why macOS asks for each permission (removable volumes, Documents, local network, keystrokes). Open it again from **Help → Welcome and Permissions...**. If Synchron Player isn't installed, it says so.
+- macOS's own permission prompts now say why VSL Finesse is asking.
+- A warning when Synchron Player isn't installed (when a MIDI file is opened) and when you load another instrument: the app was designed for Synchron Player, and other virtual instruments may not behave as intended. Each warning appears once per run.
 - When you load a preset in Synchron Player, the track's **instrument profile** (and with it the playable range) and **Synchron preset folder** now follow it: e.g. "02 VelXF - MOD/01 Violin I - VelXF" picks Violins and VelXF - MOD. The app checks while Synchron's window is open and when you close it. Only a change of preset does this, so a profile you pick by hand stays until you load another preset. Presets the app doesn't recognise (no matching profile) leave the profile as it is.
 - VSL Finesse is now free software under the GNU AGPLv3 (see `LICENSE.md`), the licence that JUCE, which the app is built with, requires for open-source apps.
 

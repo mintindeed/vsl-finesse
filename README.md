@@ -16,6 +16,17 @@ brew install cmake         # once
 ./scripts/build-mac.sh --open
 ```
 
+## Permissions macOS asks for
+
+The first time it starts, the app shows a welcome screen explaining these (open it again from **Help → Welcome and Permissions...**). Instrument plug-ins run inside the app, so macOS asks about anything Synchron Player does in VSL Finesse's name:
+
+- **Files on a removable volume:** Synchron Player reads its samples from your Vienna library, often on an external drive. Allow it, or those instruments play silence.
+- **Files in your Documents folder:** new sessions are saved there by default, and Synchron Player may keep presets and settings there.
+- **Find devices on your local network:** asked by Vienna's software when Synchron Player loads. VSL Finesse itself doesn't use the network. You can deny it.
+- **Receive keystrokes from any app** (Input Monitoring): asked by a plug-in. VSL Finesse only reads the keyboard while its own window is in front, and doesn't need this. You can deny it.
+
+You can change your answers in System Settings → Privacy & Security.
+
 ## Using it
 
 1. **Drop a MIDI file** onto the window: one part, one instrument. Dropping several files makes one track per file.

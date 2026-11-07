@@ -54,6 +54,10 @@ public:
     juce::Array<juce::PluginDescription> instrumentPlugins() const;
     static bool isViennaInstrument (const juce::PluginDescription&);
     static bool isSynchronPlayer (const juce::PluginDescription&);
+    bool isSynchronInstalled() const;
+    // The welcome overlay has told the user Synchron Player is missing, so the
+    // pop-up saying the same is skipped.
+    void synchronMissingExplained() { warnedSynchronMissing = true; }
     void showPluginScanner (juce::Component* parent);
     void loadPlugin (Track&, const juce::PluginDescription&, std::function<void (juce::String error)> done,
                      juce::MemoryBlock state = {});
@@ -83,6 +87,12 @@ private:
     void timerCallback() override;
     void closePluginWindow (Track*);
     void destroyPlugin (std::unique_ptr<juce::AudioPluginInstance>);
+
+    // Warnings that the app was built for Synchron Player, each shown once
+    // per run.
+    void warnSynchronMissing();
+    void warnOtherInstrument (const juce::String& name);
+    bool warnedSynchronMissing = false, warnedOtherInstrument = false;
 
     class PluginWindow;
     std::map<Track*, std::unique_ptr<PluginWindow>> pluginWindows;

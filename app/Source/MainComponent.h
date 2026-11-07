@@ -7,6 +7,7 @@
 #include "InspectorPanel.h"
 #include "PianoRollView.h"
 #include "TrackListView.h"
+#include "WelcomeOverlay.h"
 
 class MainComponent : public juce::Component,
                       public juce::FileDragAndDropTarget,
@@ -46,6 +47,8 @@ private:
     void saveSession (bool saveAs);
     void openSessionDialog();
     void showError (const juce::String& title, const juce::String& message);
+    void showWelcome();
+    void dismissWelcome();
 
     AppContext& app;
     juce::TooltipWindow tooltips { this, 600 };
@@ -61,5 +64,6 @@ private:
     juce::Label positionLabel;
 
     std::unique_ptr<juce::FileChooser> chooser;
+    std::unique_ptr<WelcomeOverlay> welcome;
     bool dragOver = false;
 };
