@@ -3,8 +3,16 @@ name: Build
 on:
   push:
     branches: [main, "claude/**"]
+    # Documentation-only changes don't need a (billed) build.
+    paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   pull_request:
+    paths-ignore: ["**.md", "docs/**", "LICENSE", ".gitignore"]
   workflow_dispatch:
+
+# A newer push to the same branch cancels a build that's still running.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:
