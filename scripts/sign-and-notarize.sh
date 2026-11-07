@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Signs VSL Performer with a Developer ID certificate, notarizes it with Apple
+# Signs VSL Finesse with a Developer ID certificate, notarizes it with Apple
 # and staples the ticket, so it opens with a double-click on any Mac.
 #
-#   scripts/sign-and-notarize.sh <path/to/VSL Performer.app> <path/to/vslp-finesse> <output dir>
+#   scripts/sign-and-notarize.sh <path/to/VSL Finesse.app> <path/to/vsl-finesse> <output dir>
 #
 # Needs these environment variables (GitHub Actions passes them from secrets):
 #   MACOS_CERTIFICATE_P12_BASE64  Developer ID Application certificate + key (.p12), base64
@@ -15,8 +15,8 @@ set -euo pipefail
 APP="$1"
 CLI="$2"
 OUT="$3"
-ENTITLEMENTS="$(cd "$(dirname "$0")/.." && pwd)/app/VSLPerformer.entitlements"
-WORK="${RUNNER_TEMP:-$(mktemp -d)}/vslp-signing"
+ENTITLEMENTS="$(cd "$(dirname "$0")/.." && pwd)/app/VSLFinesse.entitlements"
+WORK="${RUNNER_TEMP:-$(mktemp -d)}/vslf-signing"
 mkdir -p "$WORK" "$OUT"
 
 # --- A temporary keychain holding the certificate -----------------------------
@@ -71,6 +71,6 @@ xcrun stapler staple "$APP"
 xcrun stapler validate "$APP"
 spctl --assess --type execute --verbose=2 "$APP"
 
-ditto -c -k --keepParent "$APP" "$OUT/VSL-Performer-macOS.zip"
+ditto -c -k --keepParent "$APP" "$OUT/VSL-Finesse-macOS.zip"
 cp "$CLI" "$OUT/"
 echo "Signed and notarized: $OUT"

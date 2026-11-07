@@ -1,12 +1,12 @@
 #pragma once
 
-#include <vslp/Model.h>
+#include <vslf/Model.h>
 
 #include <algorithm>
 #include <cmath>
 
 // Bar numbers (1-based) from a part's time signatures.
-inline int barAt (const vslp::Part& part, vslp::Tick tick)
+inline int barAt (const vslf::Part& part, vslf::Tick tick)
 {
     auto meters = part.timeSignatures;
     if (meters.empty() || meters.front().tick > 0)
@@ -26,8 +26,8 @@ inline int barAt (const vslp::Part& part, vslp::Tick tick)
 }
 
 // Rounds a tick to the nearest beat (quarter note).
-inline vslp::Tick snapToBeat (const vslp::Part& part, double tick)
+inline vslf::Tick snapToBeat (const vslf::Part& part, double tick)
 {
     const double beat = part.ppq;
-    return (vslp::Tick) std::max (0.0, std::round (tick / beat) * beat);
+    return (vslf::Tick) std::max (0.0, std::round (tick / beat) * beat);
 }

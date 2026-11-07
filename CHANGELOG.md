@@ -1,10 +1,16 @@
 # Changelog
 
-All notable changes to VSL Performer are documented here.
+All notable changes to VSL Finesse (formerly VSL Performer) are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). VSL Performer is in **alpha**: while the version is below 1.0.0, any release may change behaviour, settings or file formats. The minor version goes up for new features and behaviour changes, the patch version for fixes.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). VSL Finesse is in **alpha**: while the version is below 1.0.0, any release may change behaviour, settings or file formats. The minor version goes up for new features and behaviour changes, the patch version for fixes.
 
 ## [Unreleased]
+
+### Changed
+- The app is now called **VSL Finesse** (it was VSL Performer). The download is **VSL-Finesse-macOS** and the app is **VSL Finesse.app**; delete the old VSL Performer.app. macOS treats it as a new app, so it may ask again for permissions such as audio or file access.
+- The command line tool is now `vsl-finesse` (it was `vslp-finesse`).
+- Sessions are saved as `.vslfsession` files. Older `.vslpsession` files still open.
+- Your saved instrument profiles and settings move to `~/Library/Application Support/VSL Finesse` the first time the new app starts.
 
 ## [0.3.1] - 2026-11-07
 
@@ -62,9 +68,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Built-in instrument profiles for common orchestral instruments.
 - Unit tests and a GitHub Actions build that produces a downloadable macOS app.
 
-[Unreleased]: https://github.com/mintindeed/vsl-performer/compare/main...HEAD
-[0.3.1]: https://github.com/mintindeed/vsl-performer/commits/main
-[0.3.0]: https://github.com/mintindeed/vsl-performer/commit/e014f4e
-[0.2.0]: https://github.com/mintindeed/vsl-performer/commit/b9d4962
-[0.1.1]: https://github.com/mintindeed/vsl-performer/commit/a21ecf6
-[0.1.0]: https://github.com/mintindeed/vsl-performer/commit/18f1837
+[Unreleased]: https://github.com/mintindeed/vsl-finesse/compare/main...HEAD
+[0.3.1]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.3.0]: https://github.com/mintindeed/vsl-finesse/commit/e014f4e
+[0.2.0]: https://github.com/mintindeed/vsl-finesse/commit/b9d4962
+[0.1.1]: https://github.com/mintindeed/vsl-finesse/commit/a21ecf6
+[0.1.0]: https://github.com/mintindeed/vsl-finesse/commit/18f1837

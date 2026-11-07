@@ -2,11 +2,11 @@
 
 // Internal pipeline types shared between engine stages.
 
-#include "vslp/Engine.h"
+#include "vslf/Engine.h"
 
 #include <cstdint>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 struct NoteInfo
@@ -104,4 +104,4 @@ void findPauses (Context&);
 void applyTiming (Context&);
 void writeControllers (Context&);
 
-} // namespace vslp::detail
+} // namespace vslf::detail

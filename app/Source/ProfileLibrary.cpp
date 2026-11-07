@@ -11,7 +11,18 @@ juce::File ProfileLibrary::appDataFolder()
    #if JUCE_MAC
     base = base.getChildFile ("Application Support");
    #endif
-    return base.getChildFile ("VSL Performer");
+    const auto folder = base.getChildFile ("VSL Finesse");
+
+    // The app used to be called VSL Performer. Move its folder (saved
+    // profiles, settings) across once, so nothing is lost after the rename.
+    const auto legacy = base.getChildFile ("VSL Performer");
+    if (! folder.exists() && legacy.isDirectory() && legacy.moveFileTo (folder))
+    {
+        const auto oldSettings = folder.getChildFile ("VSL Performer.settings");
+        if (oldSettings.existsAsFile())
+            oldSettings.moveFileTo (folder.getChildFile ("VSL Finesse.settings"));
+    }
+    return folder;
 }
 
 ProfileLibrary::ProfileLibrary()
@@ -22,14 +33,14 @@ ProfileLibrary::ProfileLibrary()
 
 void ProfileLibrary::reload()
 {
-    profiles = vslp::io::builtinProfiles();
+    profiles = vslf::io::builtinProfiles();
     customised.clear();
 
     for (const auto& file : userFolder.findChildFiles (juce::File::findFiles, false, "*.json"))
     {
-        vslp::InstrumentProfile p;
+        vslf::InstrumentProfile p;
         std::string error;
-        if (! vslp::io::loadProfile (file, p, error))
+        if (! vslf::io::loadProfile (file, p, error))
         {
             DBG ("Skipping profile: " << error);
             continue;
@@ -44,7 +55,7 @@ void ProfileLibrary::reload()
     }
 }
 
-const vslp::InstrumentProfile* ProfileLibrary::find (const std::string& id) const
+const vslf::InstrumentProfile* ProfileLibrary::find (const std::string& id) const
 {
     for (const auto& p : profiles)
         if (p.id == id)
@@ -52,7 +63,7 @@ const vslp::InstrumentProfile* ProfileLibrary::find (const std::string& id) cons
     return nullptr;
 }
 
-const vslp::InstrumentProfile& ProfileLibrary::fallback() const
+const vslf::InstrumentProfile& ProfileLibrary::fallback() const
 {
     if (const auto* g = find ("generic"))
         return *g;
@@ -64,10 +75,10 @@ bool ProfileLibrary::isCustomised (const std::string& id) const
     return std::find (customised.begin(), customised.end(), id) != customised.end();
 }
 
-bool ProfileLibrary::save (const vslp::InstrumentProfile& p, juce::String& error)
+bool ProfileLibrary::save (const vslf::InstrumentProfile& p, juce::String& error)
 {
     std::string e;
-    if (! vslp::io::saveProfile (p, userFolder.getChildFile (juce::String (p.id) + ".json"), e))
+    if (! vslf::io::saveProfile (p, userFolder.getChildFile (juce::String (p.id) + ".json"), e))
     {
         error = e;
         return false;

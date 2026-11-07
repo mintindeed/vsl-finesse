@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vslp/Profile.h>
+#include <vslf/Profile.h>
 
 #include <vector>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 // The instrument profiles in /profiles, compiled into the binary.
@@ -14,4 +14,4 @@ std::vector<InstrumentProfile> builtinProfiles();
 // Finds a profile by id in `profiles`; nullptr if missing.
 const InstrumentProfile* findProfile (const std::vector<InstrumentProfile>& profiles, const std::string& id);
 
-} // namespace vslp::io
+} // namespace vslf::io

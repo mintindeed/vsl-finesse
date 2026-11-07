@@ -1,21 +1,21 @@
 #include "BuiltinProfiles.h"
 #include "JsonIO.h"
 
-#include <VslpProfiles.h>
+#include <VslfProfiles.h>
 
 #include <algorithm>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 std::vector<InstrumentProfile> builtinProfiles()
 {
     std::vector<InstrumentProfile> result;
 
-    for (int i = 0; i < VslpProfiles::namedResourceListSize; ++i)
+    for (int i = 0; i < VslfProfiles::namedResourceListSize; ++i)
     {
         int size = 0;
-        const char* data = VslpProfiles::getNamedResource (VslpProfiles::namedResourceList[i], size);
+        const char* data = VslfProfiles::getNamedResource (VslfProfiles::namedResourceList[i], size);
         if (data == nullptr)
             continue;
 
@@ -53,4 +53,4 @@ const InstrumentProfile* findProfile (const std::vector<InstrumentProfile>& prof
     return nullptr;
 }
 
-} // namespace vslp::io
+} // namespace vslf::io

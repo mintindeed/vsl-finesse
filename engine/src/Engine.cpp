@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <map>
 
-namespace vslp
+namespace vslf
 {
 namespace detail
 {
@@ -231,4 +231,4 @@ Result finesse (const Part& input, const InstrumentProfile& profile, const Setti
     return r;
 }
 
-} // namespace vslp
+} // namespace vslf

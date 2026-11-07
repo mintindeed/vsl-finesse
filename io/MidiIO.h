@@ -1,15 +1,15 @@
 #pragma once
 
-// Standard MIDI file <-> vslp::Part, using JUCE's MidiFile.
+// Standard MIDI file <-> vslf::Part, using JUCE's MidiFile.
 
 #include <juce_audio_basics/juce_audio_basics.h>
 
-#include <vslp/Model.h>
+#include <vslf/Model.h>
 
 #include <string>
 #include <vector>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 struct ReadResult
@@ -31,4 +31,4 @@ bool writeMidiFile (const Part& part, const juce::File& file, std::string& error
 // "Melody.mid" -> "Melody (Finessed).mid" in the same folder.
 juce::File finessedFileFor (const juce::File& original);
 
-} // namespace vslp::io
+} // namespace vslf::io

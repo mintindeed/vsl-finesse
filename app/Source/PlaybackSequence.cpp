@@ -6,8 +6,8 @@
 #include <map>
 #include <set>
 
-std::shared_ptr<const PlaybackSequence> PlaybackSequence::build (const vslp::Part& part,
-                                                                 const vslp::InstrumentProfile& profile,
+std::shared_ptr<const PlaybackSequence> PlaybackSequence::build (const vslf::Part& part,
+                                                                 const vslf::InstrumentProfile& profile,
                                                                  int defaultDynamics)
 {
     auto seq = std::make_shared<PlaybackSequence>();
@@ -18,7 +18,7 @@ std::shared_ptr<const PlaybackSequence> PlaybackSequence::build (const vslp::Par
     seq->defaultDynamicsValue = defaultDynamics;
 
     // Reuse the file writer's event ordering (note-offs, CCs, keyswitches, notes).
-    const auto file = vslp::io::toMidiFile (part);
+    const auto file = vslf::io::toMidiFile (part);
     std::set<int> channels;
 
     for (int t = 0; t < file.getNumTracks(); ++t)

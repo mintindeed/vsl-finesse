@@ -53,7 +53,7 @@ std::unique_ptr<juce::AudioPluginInstance> Session::removeTrack (int index)
     return std::move (removed->audio.plugin);
 }
 
-void Session::setSelection (vslp::Tick start, vslp::Tick end)
+void Session::setSelection (vslf::Tick start, vslf::Tick end)
 {
     if (end < start)
         std::swap (start, end);
@@ -92,7 +92,7 @@ void Session::process (Track& t)
     if (! t.hasMidi)
         return;
 
-    t.result = vslp::finesse (t.input, t.profile, t.settings, t.markings);
+    t.result = vslf::finesse (t.input, t.profile, t.settings, t.markings);
 
     auto original = PlaybackSequence::build (t.input, t.profile, t.flatDynamics());
     auto finessed = PlaybackSequence::build (t.result.part, t.profile, t.flatDynamics());

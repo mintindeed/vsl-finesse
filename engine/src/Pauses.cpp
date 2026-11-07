@@ -14,7 +14,7 @@
 #include <cmath>
 #include <limits>
 
-namespace vslp::detail
+namespace vslf::detail
 {
 
 namespace
@@ -154,4 +154,4 @@ void findPauses (Context& ctx)
     }
 }
 
-} // namespace vslp::detail
+} // namespace vslf::detail

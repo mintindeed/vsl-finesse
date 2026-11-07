@@ -108,7 +108,7 @@ void PianoRollView::drawGrid (juce::Graphics& g, const Track& t)
     const auto header = headerArea();
 
     // Bars.
-    std::vector<vslp::TimeSignature> meters = part.timeSignatures;
+    std::vector<vslf::TimeSignature> meters = part.timeSignatures;
     if (meters.empty())
         meters.push_back ({ 0, 4, 4 });
 
@@ -172,7 +172,7 @@ void PianoRollView::drawGrid (juce::Graphics& g, const Track& t)
             continue;
         g.setColour (theme::text.withAlpha (0.8f));
         g.fillRect (x, (float) header.getY() + 26.0f, 1.5f, 8.0f);
-        g.drawText (vslp::noteName (ks.pitch), (int) x + 3, header.getY() + 24, 40, 10, juce::Justification::left);
+        g.drawText (vslf::noteName (ks.pitch), (int) x + 3, header.getY() + 24, 40, 10, juce::Justification::left);
     }
 }
 
@@ -203,7 +203,7 @@ void PianoRollView::drawNotes (juce::Graphics& g, const Track& t)
             g.setColour (theme::outline.withAlpha (0.4f));
             g.drawHorizontalLine ((int) (yFor (p) + rowHeight), (float) area.getX(), (float) area.getRight());
             g.setColour (theme::textDim);
-            g.drawText (vslp::noteName (p), area.getX() + 2, (int) yFor (p), 30, (int) rowHeight, juce::Justification::left);
+            g.drawText (vslf::noteName (p), area.getX() + 2, (int) yFor (p), 30, (int) rowHeight, juce::Justification::left);
         }
 
     // Original notes as outlines, so timing changes are visible.
@@ -308,7 +308,7 @@ int PianoRollView::markingAt (const Track& t, juce::Point<int> p) const
         const auto& m = t.markings[(size_t) i];
         const float x1 = xForSeconds (tempo.secondsAt ((double) m.start));
         const float x2 = xForSeconds (tempo.secondsAt ((double) m.end));
-        const bool hairpin = m.kind != vslp::Marking::Kind::Dynamic;
+        const bool hairpin = m.kind != vslf::Marking::Kind::Dynamic;
         const float top = (float) area.getY();
         const float height = hairpin ? (float) area.getHeight() : half + 1.0f;
         if ((float) p.x >= x1 && (float) p.x <= x2 && (float) p.y >= top && (float) p.y <= top + height)
@@ -332,14 +332,14 @@ void PianoRollView::drawMarkings (juce::Graphics& g, const Track& t)
         if (x2 < 0.0f || x1 > (float) getWidth())
             continue;
 
-        if (m.kind == vslp::Marking::Kind::Dynamic)
+        if (m.kind == vslf::Marking::Kind::Dynamic)
         {
             const float y = (float) area.getY();
             g.setColour (theme::text.withAlpha (0.25f));
             g.fillRect (x1, y + half - 2.0f, x2 - x1, 1.0f);
             g.setColour (theme::text);
             g.setFont (juce::FontOptions (13.0f, juce::Font::bold | juce::Font::italic));
-            g.drawText (vslp::dynamicSymbol (m.level), juce::Rectangle<float> (x1 + 3.0f, y, 30.0f, half),
+            g.drawText (vslf::dynamicSymbol (m.level), juce::Rectangle<float> (x1 + 3.0f, y, 30.0f, half),
                         juce::Justification::centredLeft);
         }
         else
@@ -348,7 +348,7 @@ void PianoRollView::drawMarkings (juce::Graphics& g, const Track& t)
             const float y = (float) area.getCentreY();
             const float open = half - 3.0f;
             juce::Path p;
-            if (m.kind == vslp::Marking::Kind::Crescendo)
+            if (m.kind == vslf::Marking::Kind::Crescendo)
             {
                 p.startNewSubPath (x2, y - open);
                 p.lineTo (x1, y);

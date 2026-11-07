@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace vslp
+namespace vslf
 {
 
 enum class Family
@@ -96,4 +96,4 @@ std::optional<Family> familyFromString (const std::string&);
 std::string noteName (int pitch);
 std::optional<int> parseNoteName (const std::string&);
 
-} // namespace vslp
+} // namespace vslf

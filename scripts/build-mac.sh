@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds VSL Performer.app on a Mac.
+# Builds VSL Finesse.app on a Mac.
 #
 #   ./scripts/build-mac.sh          build
 #   ./scripts/build-mac.sh --open   build and launch
@@ -24,7 +24,7 @@ cmake -S . -B build "${generator[@]}" -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release --parallel
 ctest --test-dir build -C Release --output-on-failure
 
-app="build/app/VSLPerformerApp_artefacts/Release/VSL Performer.app"
+app="build/app/VSLFinesseApp_artefacts/Release/VSL Finesse.app"
 echo
 echo "Built: $app"
 echo "Copy it to /Applications, or run with --open."

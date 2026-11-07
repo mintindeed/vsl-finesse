@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace vslp
+namespace vslf
 {
 
 // A dynamic marking the user puts on a passage, like in a score.
@@ -94,4 +94,4 @@ Part ingest (const Part& input, const InstrumentProfile& profile, const Settings
 Result finesse (const Part& input, const InstrumentProfile& profile, const Settings& settings,
                 const std::vector<Marking>& markings = {});
 
-} // namespace vslp
+} // namespace vslf

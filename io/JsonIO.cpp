@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace vslp::io
+namespace vslf::io
 {
 
 namespace
@@ -276,7 +276,7 @@ bool saveProfile (const InstrumentProfile& p, const juce::File& file, std::strin
     return writeJson (profileToJson (p), file, error);
 }
 
-#define VSLP_SETTINGS_FIELDS(X) \
+#define VSLF_SETTINGS_FIELDS(X) \
     X (intensity) X (humanPauses) X (useInputVelocity) X (baseLevel) X (levelOffset) \
     X (phraseArchAmount) X (highLoudAmount) X (durationContrastAmount) X (metricAccentAmount) \
     X (longNoteSwellAmount) X (phraseEndTaperAmount) \
@@ -289,7 +289,7 @@ juce::var settingsToJson (const Settings& s)
 {
     auto* o = new juce::DynamicObject();
 #define X(field) o->setProperty (#field, s.field);
-    VSLP_SETTINGS_FIELDS (X)
+    VSLF_SETTINGS_FIELDS (X)
 #undef X
     o->setProperty ("seed", (juce::int64) s.seed);
     o->setProperty ("presetType", juce::String (toString (s.presetType)));
@@ -303,7 +303,7 @@ void settingsFromJson (const juce::var& v, Settings& s)
         return;
 #define X(field) \
     if (v.hasProperty (#field)) s.field = static_cast<decltype (s.field)> (v[#field]);
-    VSLP_SETTINGS_FIELDS (X)
+    VSLF_SETTINGS_FIELDS (X)
 #undef X
     if (v.hasProperty ("seed"))
         s.seed = (uint32_t) (juce::int64) v["seed"];
@@ -367,4 +367,4 @@ std::vector<Marking> markingsFromJson (const juce::var& v)
     return out;
 }
 
-} // namespace vslp::io
+} // namespace vslf::io

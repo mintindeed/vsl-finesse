@@ -183,7 +183,7 @@ void MainComponent::openFiles (const juce::StringArray& paths, int trackIndex)
     for (const auto& path : paths)
     {
         const juce::File f (path);
-        if (f.hasFileExtension ("vslpsession"))
+        if (f.hasFileExtension ("vslfsession;vslpsession")) // .vslpsession: saved before the rename to VSL Finesse
         {
             app.openSession (f, [this] (juce::String e) {
                 if (e.isNotEmpty())
@@ -230,7 +230,7 @@ void MainComponent::openFiles (const juce::StringArray& paths, int trackIndex)
 bool MainComponent::isInterestedInFileDrag (const juce::StringArray& files)
 {
     for (const auto& f : files)
-        if (AppContext::isMidiFile (juce::File (f)) || juce::File (f).hasFileExtension ("vslpsession"))
+        if (AppContext::isMidiFile (juce::File (f)) || juce::File (f).hasFileExtension ("vslfsession;vslpsession"))
             return true;
     return false;
 }
@@ -274,7 +274,7 @@ void MainComponent::exportSelected()
         return;
 
     const int index = app.session.selectedIndex();
-    chooser = std::make_unique<juce::FileChooser> ("Export finessed MIDI", vslp::io::finessedFileFor (t->midiFile), "*.mid");
+    chooser = std::make_unique<juce::FileChooser> ("Export finessed MIDI", vslf::io::finessedFileFor (t->midiFile), "*.mid");
     chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
                               | juce::FileBrowserComponent::warnAboutOverwriting,
                           [this, index] (const juce::FileChooser& fc) {
@@ -319,20 +319,20 @@ void MainComponent::saveSession (bool saveAs)
     }
 
     auto* t = app.session.track (0);
-    const auto start = t != nullptr && t->hasMidi ? t->midiFile.withFileExtension ("vslpsession")
-                                                  : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Untitled.vslpsession");
-    chooser = std::make_unique<juce::FileChooser> ("Save session", start, "*.vslpsession");
+    const auto start = t != nullptr && t->hasMidi ? t->midiFile.withFileExtension ("vslfsession")
+                                                  : juce::File::getSpecialLocation (juce::File::userDocumentsDirectory).getChildFile ("Untitled.vslfsession");
+    chooser = std::make_unique<juce::FileChooser> ("Save session", start, "*.vslfsession");
     chooser->launchAsync (juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
                               | juce::FileBrowserComponent::warnAboutOverwriting,
                           [doSave] (const juce::FileChooser& fc) {
                               if (fc.getResult() != juce::File())
-                                  doSave (fc.getResult().withFileExtension ("vslpsession"));
+                                  doSave (fc.getResult().withFileExtension ("vslfsession"));
                           });
 }
 
 void MainComponent::openSessionDialog()
 {
-    chooser = std::make_unique<juce::FileChooser> ("Open session", app.currentSessionFile, "*.vslpsession");
+    chooser = std::make_unique<juce::FileChooser> ("Open session", app.currentSessionFile, "*.vslfsession;*.vslpsession");
     chooser->launchAsync (juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
                           [this] (const juce::FileChooser& fc) {
                               if (fc.getResult() != juce::File())

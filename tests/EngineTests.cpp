@@ -4,8 +4,8 @@
 
 #include <cmath>
 
-using namespace vslp;
-using namespace vslp::test;
+using namespace vslf;
+using namespace vslf::test;
 
 TEST_CASE ("tempo map converts ticks and seconds across tempo changes")
 {
