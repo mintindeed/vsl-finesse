@@ -149,6 +149,8 @@ docs/     design notes
 
 ## Licence
 
-VSL Finesse's own code is released under the [MIT licence](LICENSE).
+Copyright (C) 2026 Gabriel Koen.
 
-The app and the command line tool are built with [JUCE](https://juce.com) 9, which is licensed separately: AGPLv3, or a JUCE commercial licence. A build you give to other people that links JUCE under the AGPLv3 has to be passed on under the AGPLv3 as a whole, with its source. The engine (`engine/`) doesn't use JUCE and is plain MIT. The app also uses [Zstandard](https://github.com/facebook/zstd) (BSD licence) to read Synchron Player's saved state.
+VSL Finesse is free software under the [GNU Affero General Public License, version 3](LICENSE.md) (AGPLv3): you can use, share and change it, and anything you pass on that's built from it has to be passed on under the same licence, with its source.
+
+It's AGPLv3 because it's built with [JUCE](https://juce.com) 9, which is offered under the AGPLv3 or a paid JUCE licence. It also uses [Zstandard](https://github.com/facebook/zstd) (BSD licence) to read Synchron Player's saved state.
