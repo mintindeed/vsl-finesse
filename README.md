@@ -113,7 +113,11 @@ Synchron presets switch articulations with one key per level of the articulation
 
 GitHub can sign every build with a Developer ID certificate and have Apple notarize it, so it opens with a double-click on any Mac. It needs a paid Apple Developer account, and five repository secrets. Until all of them are set, builds are unsigned (right-click > **Open** the first time).
 
-1. **Developer ID Application certificate** (only the Account Holder can create one): Xcode > Settings > Accounts > your team > **Manage Certificates...** > **+** > **Developer ID Application**. Then in Keychain Access, find "Developer ID Application: *your name* (*team ID*)", right-click > **Export...**, and save it as a `.p12` file with a password.
+1. **Developer ID Application certificate + private key, as a `.p12` file** (only the Account Holder can create the certificate). Either route works:
+   - **In Xcode:** Settings > Accounts > your team > **Manage Certificates...** > **+** > **Developer ID Application**.
+   - **On the website:** in Keychain Access, choose Keychain Access > Certificate Assistant > **Request a Certificate From a Certificate Authority...**, enter your email and save the request to disk. Upload it at developer.apple.com > Certificates > **+** > **Developer ID Application**, download the `.cer` file and double-click it.
+
+   A `.cer` file is only the certificate; signing also needs the private key that was created on your Mac with the request. Check they're together with `security find-identity -v -p codesigning`: a line with "Developer ID Application: *your name* (*team ID*)" means they are. Then in Keychain Access (login keychain, **My Certificates**), right-click that certificate > **Export...** > **Personal Information Exchange (.p12)**, and choose a password. If the line is missing, the key isn't on this Mac: create a new request and certificate as above, and revoke the unusable one on the website.
 2. **App Store Connect API key** (for notarization): on [App Store Connect](https://appstoreconnect.apple.com), go to Users and Access > Integrations > App Store Connect API > **Team Keys** and generate a key with **Developer** access. Download the `.p8` file (you can only download it once) and note its **Key ID** and the **Issuer ID** shown above the list.
 3. **Add the secrets** to the repository: on GitHub, Settings > Secrets and variables > Actions > **New repository secret**. Or from Terminal in the project folder:
 
