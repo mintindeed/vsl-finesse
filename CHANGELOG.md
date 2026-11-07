@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-07
+
 ### Added
 - **Notes start, end and join like a player's.** With a Synchron preset loaded, the app shapes its Attack (CC22), Release (CC23) and Legato blur (CC33) per note, around the preset's own settings: notes ring at phrase ends and before rests and stop cleanly when short and detached, quiet entries come in softly, and slow soft legato joins more smoothly than fast runs. Character sets how far they range. A controller you kept from your file wins.
 - **Crossfaded articulations are shaped like a player would.** Some articulations blend two sounds with a controller (Synchron's Dimension Controls): Marcato adds a staccato attack on top of the sustain, XF tremolo turns the sustain into tremolo. The app reads which kind each one is from the loaded preset and shapes it: Marcato's attack gets more bite on strong beats, phrase starts, after rests, on leaps, in louder passages and on notes your file accents, and less in fast notes; XF tremolo leans into the tremolo towards each phrase's peak and back. Character sets how far they range. They're written wherever the preset sends the control (velocity, CC1 or CC20), never over the app's own dynamics or a controller you kept from your file. The Report lists what was shaped.
@@ -96,7 +98,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Unit tests and a GitHub Actions build that produces a downloadable macOS app.
 
 [Unreleased]: https://github.com/mintindeed/vsl-finesse/compare/main...HEAD
-[0.4.0]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.5.0]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.4.0]: https://github.com/mintindeed/vsl-finesse/commit/e67f620
 [0.3.1]: https://github.com/mintindeed/vsl-finesse/commit/9d58758
 [0.3.0]: https://github.com/mintindeed/vsl-finesse/commit/e014f4e
 [0.2.0]: https://github.com/mintindeed/vsl-finesse/commit/b9d4962
