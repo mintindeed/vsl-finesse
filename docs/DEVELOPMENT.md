@@ -267,7 +267,9 @@ Plug-ins run inside the app, so macOS attributes their file, network and keyboar
 - **Engine tests (Linux):** builds the engine, command line tool and tests, and runs the tests.
 - **macOS app:** builds a universal app (arm64 + x86_64), runs the tests, then signs and notarizes it if the secrets are set (or ad-hoc signs it if not), and uploads **VSL-Finesse-macOS**.
 
-The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. Documentation-only changes (`*.md`, `docs/`) don't start a build.
+The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build.
+
+**Documentation and the build.** The workflow ignores `*.md`, `docs/**`, `LICENSE` and `.gitignore` (`paths-ignore`), but for pull requests GitHub compares the whole pull request with the commit it branched from, not just the latest push ([GitHub: Workflow syntax, `paths-ignore`](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)). So a pull request that only changes documentation never builds, but once a pull request contains code, every push to it builds both jobs, macOS included, even one that only changes a doc. Hold documentation fixes until the pull request's next code push, or open a separate documentation pull request.
 
 ## Signed builds
 
