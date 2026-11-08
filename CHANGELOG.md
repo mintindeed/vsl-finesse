@@ -6,7 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-07
+
 ### Added
+- **Notes start, end and join like a player's.** With a Synchron preset loaded, the app shapes its Attack (CC22), Release (CC23) and Legato blur (CC33) per note, around the preset's own settings: notes ring at phrase ends and before rests and stop cleanly when short and detached, quiet entries come in softly, and slow soft legato joins more smoothly than fast runs. Character sets how far they range. A controller you kept from your file wins.
+- **Crossfaded articulations are shaped like a player would.** Some articulations blend two sounds with a controller (Synchron's Dimension Controls): Marcato adds a staccato attack on top of the sustain, XF tremolo turns the sustain into tremolo. The app reads which kind each one is from the loaded preset and shapes it: Marcato's attack gets more bite on strong beats, phrase starts, after rests, on leaps, in louder passages and on notes your file accents, and less in fast notes; XF tremolo leans into the tremolo towards each phrase's peak and back. Character sets how far they range. They're written wherever the preset sends the control (velocity, CC1 or CC20), never over the app's own dynamics or a controller you kept from your file. The Report lists what was shaped.
+- **Settings** (⌘,) with a choice for the controller data (CCs) already in MIDI files: remove it **Always**, **Never**, or **Ask** when a file has some (the default). Until now the app always removed it, including controllers it doesn't write itself, such as CC20 (Synchron's tremolo crossfade) or CC64 (sustain pedal). If you keep them, the app's own dynamics (CC1) and expression (CC11) still replace the file's where it writes them, since that's the bulk of what the app does; untick **Replace CC1 and CC11 with mine** and a CC1 or CC11 line in your file wins instead (the app writes none for that controller). The Report says how many of the file's controller events were kept and removed.
+- **Articulation picker:** drag across some bars (or select nothing for the whole part), click **Articulation** in the strip above the notes and pick one by name, e.g. **Long notes > Marcato**. The names come from the preset loaded in Synchron Player. The app writes that articulation's keyswitches just before the passage and switches back afterwards to what was playing before. Keyswitches in your file inside the passage are replaced; the rest stay as written. Each preset has its own articulations, levels and keys (e.g. Violin I vs Violin I PLUS, VelXF sus vs Velocity), so the menu always shows the loaded preset's, nested like its tree. A pick is remembered by name: after loading another preset it uses that preset's keys, and if that preset doesn't have it, it's shown in orange and writes nothing. Picks show in a lane above the dynamics markings (right-click one to remove it), are saved in sessions, and go into the exported MIDI file.
+- With a Synchron preset loaded, each articulation's dynamics follow what the preset says rather than the note's length: in VelXF sus, Staccato and Detache follow velocity even when long and Sustain crossfades with CC1 even when short; on timpani, hits follow velocity and rolls crossfade. The **Velocity** preset folder still means velocity for every note.
+- Presets outside the three preset folders, such as Harp I or Timpani VelXF rolls, now set the preset folder too: Velocity for presets whose layers follow velocity (Harp), VelXF sus otherwise.
+- Keyswitches in your file are now read by the loaded Synchron preset's own levels, so presets whose articulation keys don't fit one octave per level are understood correctly.
+- The Articulations list names each articulation, e.g. "Long notes > Marcato (C#0 + C#1)", using the Synchron preset's names, and the Report says how many keyswitches were written for picked articulations.
 - A welcome screen the first time the app starts: what the app is built for (Synchron Player), and why macOS asks for each permission (removable volumes, Documents, local network, keystrokes). Open it again from **Help → Welcome and Permissions...**. If Synchron Player isn't installed, it says so.
 - macOS's own permission prompts now say why VSL Finesse is asking.
 - A warning when Synchron Player isn't installed (when a MIDI file is opened) and when you load another instrument: the app was designed for Synchron Player, and other virtual instruments may not behave as intended. Each warning appears once per run.
@@ -14,11 +24,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - VSL Finesse is now free software under the GNU AGPLv3 (see `LICENSE.md`), the licence that JUCE, which the app is built with, requires for open-source apps.
 
 ### Changed
+- In the VelXF presets, Marcato velocities are no longer kept exactly as written: velocity sets Marcato's attack there, so the app now shapes it (your file's accents still count). Other notes' velocities stay as written, as before.
 - Opening a MIDI file on a track with no instrument now loads Synchron Player automatically, if it's installed. Click **Edit** to open it and load your preset. You can still pick another instrument from the track's instrument button.
 - Synchron Player now opens in its **Precision** view instead of Flow when the app loads it. The app's preset folder choices (VelXF sus - MOD, VelXF - MOD, Velocity) are Precision presets. A Flow preset you've loaded yourself is left alone, and so is a track restored from a session.
 - The **Plain** character button is now called **Simple**.
 
 ### Fixed
+- Dynamics markings saved in a session are restored when you open it (they were dropped).
 - A MIDI file named after a longer instrument name, such as "Bass Clarinet.mid", no longer gets the shorter one's profile (Clarinet).
 
 ## [0.4.0] - 2026-11-07
@@ -86,7 +98,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Unit tests and a GitHub Actions build that produces a downloadable macOS app.
 
 [Unreleased]: https://github.com/mintindeed/vsl-finesse/compare/main...HEAD
-[0.4.0]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.5.0]: https://github.com/mintindeed/vsl-finesse/commits/main
+[0.4.0]: https://github.com/mintindeed/vsl-finesse/commit/e67f620
 [0.3.1]: https://github.com/mintindeed/vsl-finesse/commit/9d58758
 [0.3.0]: https://github.com/mintindeed/vsl-finesse/commit/e014f4e
 [0.2.0]: https://github.com/mintindeed/vsl-finesse/commit/b9d4962

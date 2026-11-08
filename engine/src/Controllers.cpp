@@ -234,6 +234,32 @@ void writeControllers (Context& ctx)
         collapsed.push_back (e);
     }
 
+    // Unless the user wants the file's own CC1/CC11, which then stay and
+    // leave the engine's line for that controller out.
+    if (! s.replaceFileDynamics)
+    {
+        auto fileHas = [&] (int cc) {
+            return std::any_of (part.controllers.begin(), part.controllers.end(),
+                                [cc] (const ControllerEvent& c) { return c.controller == cc; });
+        };
+        collapsed.erase (std::remove_if (collapsed.begin(), collapsed.end(),
+                                         [&] (const ControllerEvent& e) { return fileHas (e.controller); }),
+                         collapsed.end());
+    }
+
+    // Controllers written here replace what the file had for them.
+    std::vector<int> written;
+    for (const auto& e : collapsed)
+        if (std::find (written.begin(), written.end(), e.controller) == written.end())
+            written.push_back (e.controller);
+    const auto before = part.controllers.size();
+    part.controllers.erase (std::remove_if (part.controllers.begin(), part.controllers.end(),
+                                            [&] (const ControllerEvent& c) {
+                                                return std::find (written.begin(), written.end(), c.controller) != written.end();
+                                            }),
+                            part.controllers.end());
+    ctx.report.controllersRemoved += (int) (before - part.controllers.size());
+
     part.controllers.insert (part.controllers.end(), collapsed.begin(), collapsed.end());
     std::stable_sort (part.controllers.begin(), part.controllers.end(),
                       [] (const ControllerEvent& a, const ControllerEvent& b) { return a.tick < b.tick; });

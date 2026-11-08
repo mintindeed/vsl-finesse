@@ -4,8 +4,9 @@
 
 #include "AppContext.h"
 
-// The strip above the piano roll: pp..ff, crescendo, diminuendo and clear,
-// applied to the selected bars (drag in the piano roll) or the whole part.
+// The strip above the piano roll: the articulation picker, pp..ff,
+// crescendo, diminuendo and clear, applied to the selected bars (drag in the
+// piano roll) or the whole part.
 class DynamicsBar : public juce::Component,
                     private juce::ChangeListener
 {
@@ -20,9 +21,11 @@ private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
     void refresh();
     void apply (vslf::Marking::Kind, int level);
+    void showArticulationMenu();
 
     AppContext& app;
     juce::Label scopeLabel;
     juce::OwnedArray<juce::TextButton> dynamicButtons;
+    juce::TextButton articulationButton { "Articulation" };
     juce::TextButton crescButton { "cresc." }, dimButton { "dim." }, clearButton { "Clear" };
 };

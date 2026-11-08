@@ -283,7 +283,7 @@ bool saveProfile (const InstrumentProfile& p, const juce::File& file, std::strin
     X (humanizeVelocity) X (humanizeTimingMs) \
     X (velocityMin) X (velocityMax) X (dynamicsMin) X (dynamicsMax) X (expressionBase) X (expressionMin) \
     X (legatoOverlapMs) X (legatoMaxGapMs) X (repeatedNoteGapMs) X (minNoteMs) \
-    X (ccIntervalMs) X (ccLeadMs) X (breathMs) X (shortNoteMs)
+    X (ccIntervalMs) X (ccLeadMs) X (breathMs) X (shortNoteMs) X (keepControllers) X (replaceFileDynamics)
 
 juce::var settingsToJson (const Settings& s)
 {
@@ -362,6 +362,44 @@ std::vector<Marking> markingsFromJson (const juce::var& v)
                 if (symbol == dynamicSymbol (level))
                     m.level = level;
             if (m.end > m.start)
+                out.push_back (m);
+        }
+    return out;
+}
+
+juce::var articulationMarkingsToJson (const std::vector<ArticulationMarking>& markings)
+{
+    juce::Array<juce::var> list;
+    for (const auto& m : markings)
+    {
+        auto* o = new juce::DynamicObject();
+        o->setProperty ("name", juce::String (m.name));
+        o->setProperty ("start", (juce::int64) m.start);
+        o->setProperty ("end", (juce::int64) m.end);
+        juce::Array<juce::var> keys;
+        for (int k : m.keys)
+            keys.add (juce::String (noteName (k)));
+        o->setProperty ("keys", keys);
+        list.add (juce::var (o));
+    }
+    return list;
+}
+
+std::vector<ArticulationMarking> articulationMarkingsFromJson (const juce::var& v)
+{
+    std::vector<ArticulationMarking> out;
+    if (const auto* list = v.getArray())
+        for (const auto& item : *list)
+        {
+            ArticulationMarking m;
+            m.name = item["name"].toString().toStdString();
+            m.start = (Tick) (juce::int64) item["start"];
+            m.end = (Tick) (juce::int64) item["end"];
+            if (const auto* keys = item["keys"].getArray())
+                for (const auto& k : *keys)
+                    if (const auto pitch = parseNoteName (k.toString().toStdString()))
+                        m.keys.push_back (*pitch);
+            if (m.end > m.start && ! m.keys.empty())
                 out.push_back (m);
         }
     return out;

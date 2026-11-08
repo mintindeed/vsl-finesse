@@ -1,10 +1,13 @@
 add_library (vslf_engine STATIC
     src/Analysis.cpp
+    src/Articulations.cpp
+    src/Blends.cpp
     src/Controllers.cpp
     src/Dynamics.cpp
     src/Engine.cpp
     src/Ingest.cpp
     src/Pauses.cpp
+    src/Performance.cpp
     src/Profile.cpp
     src/TempoMap.cpp
     src/Timing.cpp)

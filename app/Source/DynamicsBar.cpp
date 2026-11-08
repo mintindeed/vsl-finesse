@@ -32,6 +32,11 @@ DynamicsBar::DynamicsBar (AppContext& a) : app (a)
     for (auto* b : { &crescButton, &dimButton, &clearButton })
         addAndMakeVisible (b);
 
+    articulationButton.setTooltip ("Pick an articulation for the selected bars (or the whole part). "
+                                   "The app writes the keyswitches that select it.");
+    articulationButton.onClick = [this] { showArticulationMenu(); };
+    addAndMakeVisible (articulationButton);
+
     app.session.addChangeListener (this);
     refresh();
 }
@@ -49,21 +54,21 @@ void DynamicsBar::refresh()
     const bool enabled = t != nullptr && t->hasMidi;
     for (auto* b : dynamicButtons)
         b->setEnabled (enabled);
-    for (auto* b : { &crescButton, &dimButton })
+    for (auto* b : { &crescButton, &dimButton, &articulationButton })
         b->setEnabled (enabled);
     clearButton.setEnabled (enabled && ! t->markings.empty());
 
-    juce::String scope = "Dynamics for the whole part";
+    juce::String scope = "Whole part";
     if (enabled && app.session.hasSelection())
     {
         const int first = barAt (t->input, app.session.selectionStart);
         const int last = barAt (t->input, app.session.selectionEnd - 1);
-        scope = first == last ? "Dynamics for bar " + juce::String (first)
-                              : "Dynamics for bars " + juce::String (first) + "-" + juce::String (last);
+        scope = first == last ? "Bar " + juce::String (first)
+                              : "Bars " + juce::String (first) + "-" + juce::String (last);
     }
     else if (enabled)
         scope << "  (drag across bars to pick a passage)";
-    scopeLabel.setText (enabled ? scope : juce::String ("Dynamics"), juce::dontSendNotification);
+    scopeLabel.setText (enabled ? scope : juce::String ("Articulations and dynamics"), juce::dontSendNotification);
 }
 
 void DynamicsBar::apply (vslf::Marking::Kind kind, int level)
@@ -75,6 +80,115 @@ void DynamicsBar::apply (vslf::Marking::Kind kind, int level)
         m.level = level;
         app.applyMarking (*t, m);
     }
+}
+
+void DynamicsBar::showArticulationMenu()
+{
+    auto* t = app.session.selectedTrack();
+    if (t == nullptr || ! t->hasMidi)
+        return;
+
+    struct Choice
+    {
+        juce::String name;
+        std::vector<int> keys;
+    };
+    auto choices = std::make_shared<std::vector<Choice>>();
+    auto keysText = [] (const std::vector<int>& keys) {
+        juce::StringArray names;
+        for (int k : keys)
+            names.add (vslf::noteName (k));
+        return names.joinIntoString (" + ");
+    };
+    auto item = [&] (const juce::String& label, const juce::String& name, const std::vector<int>& keys) {
+        choices->push_back ({ name, keys });
+        juce::PopupMenu::Item i (label);
+        i.itemID = (int) choices->size();
+        i.shortcutKeyDescription = keysText (keys);
+        return i;
+    };
+
+    juce::PopupMenu menu;
+    if (! t->synchronArticulations.empty())
+    {
+        // The preset's tree as nested menus: "Long notes > Marcato" is
+        // Marcato in a Long notes submenu, however deep the tree goes.
+        menu.addSectionHeader ("From the Synchron preset");
+        const auto& tree = t->synchronArticulations;
+        std::function<void (juce::PopupMenu&, size_t, size_t, int)> addLevel;
+        addLevel = [&] (juce::PopupMenu& into, size_t begin, size_t end, int depth) {
+            for (size_t i = begin; i < end;)
+            {
+                const auto& a = tree[i];
+                if (a.path.size() <= depth + 1)
+                {
+                    into.addItem (item (a.path[depth], a.name(), a.keys));
+                    ++i;
+                    continue;
+                }
+                // The articulations sharing this branch are next to each other.
+                size_t j = i + 1;
+                while (j < end && tree[j].path.size() > depth + 1 && tree[j].path[depth] == a.path[depth])
+                    ++j;
+                juce::PopupMenu sub;
+                addLevel (sub, i, j, depth + 1);
+                into.addSubMenu (a.path[depth], sub);
+                i = j;
+            }
+        };
+        addLevel (menu, 0, tree.size(), 0);
+    }
+    else
+    {
+        // No tree to read: the profile's named articulations and the key
+        // combinations in the file.
+        bool any = false;
+        for (const auto& m : t->profile.articulations)
+            if (! m.keys.empty())
+            {
+                menu.addItem (item (m.articulation.name, m.articulation.name, m.keys));
+                any = true;
+            }
+        for (const auto& u : t->result.report.articulations)
+            if (! u.keys.empty() && ! u.mapped)
+            {
+                if (! any)
+                    menu.addSectionHeader ("Keyswitches in the file");
+                menu.addItem (item (keysText (u.keys), keysText (u.keys), u.keys));
+                any = true;
+            }
+        if (! any)
+            menu.addItem (juce::PopupMenu::Item ("Load a Synchron Player preset to pick articulations by name").setEnabled (false));
+    }
+
+    menu.addSeparator();
+    constexpr int clearId = 100000;
+    menu.addItem (juce::PopupMenu::Item (app.session.hasSelection() ? "Remove picked articulations here"
+                                                                     : "Remove all picked articulations")
+                      .setID (clearId)
+                      .setEnabled (! t->articulationMarkings.empty()));
+
+    juce::Component::SafePointer<DynamicsBar> safe (this);
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&articulationButton),
+                        [safe, choices] (int result) {
+                            if (safe == nullptr || result == 0)
+                                return;
+                            auto* track = safe->app.session.selectedTrack();
+                            if (track == nullptr)
+                                return;
+                            if (result == clearId)
+                            {
+                                safe->app.clearArticulations (*track);
+                                return;
+                            }
+                            if (! juce::isPositiveAndNotGreaterThan (result, (int) choices->size()))
+                                return;
+                            const auto& c = (*choices)[(size_t) result - 1];
+                            vslf::ArticulationMarking m;
+                            m.name = c.name.toStdString();
+                            m.keys = c.keys;
+                            safe->app.applyArticulation (*track, m);
+                        });
 }
 
 void DynamicsBar::paint (juce::Graphics& g)
@@ -94,6 +208,8 @@ void DynamicsBar::resized()
     r.removeFromRight (12);
     for (int i = dynamicButtons.size(); --i >= 0;)
         dynamicButtons[i]->setBounds (r.removeFromRight (40));
+    r.removeFromRight (12);
+    articulationButton.setBounds (r.removeFromRight (110));
     r.removeFromRight (12);
     scopeLabel.setBounds (r);
 }

@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <vslf/Engine.h>
+#include <SynchronState.h>
 
 #include "PlaybackSequence.h"
 
@@ -30,6 +31,7 @@ public:
     vslf::InstrumentProfile profile;
     vslf::Settings settings;
     std::vector<vslf::Marking> markings; // pp..ff, crescendos (input ticks)
+    std::vector<vslf::ArticulationMarking> articulationMarkings; // picked articulations (input ticks)
     vslf::Result result;
 
     juce::PluginDescription pluginDescription;
@@ -37,6 +39,17 @@ public:
     // Synchron Player preset last seen on this track. When it changes, the
     // instrument profile and preset folder follow it.
     juce::String synchronPreset;
+    // The articulations the loaded Synchron preset switches by keyswitch, and
+    // the one it was in when the preset was loaded (what the part switches
+    // back to after a picked passage, where the file has no keyswitch).
+    std::vector<vslf::io::SynchronArticulation> synchronArticulations;
+    std::vector<int> articulationStartKeys;
+    // The preset's Dimension Control values (slot -> 0..1) when it was
+    // loaded: the centre of each crossfaded articulation.
+    std::map<int, double> dimensionControls;
+    // Its performance controls (attack, release, legato blur: CC and value)
+    // when it was loaded, the centre of each.
+    std::map<std::string, std::pair<int, double>> performControls;
 
     struct Audio
     {
@@ -48,6 +61,12 @@ public:
         float gain = 1.0f;
     };
     Audio audio;
+
+    // The profile the engine and playback use: the instrument profile with
+    // the loaded preset's keyswitch levels and articulation names.
+    vslf::InstrumentProfile engineProfile() const;
+    // A pick whose articulation isn't in the loaded preset (nothing is written for it).
+    bool isPickMissing (const vslf::ArticulationMarking&) const;
 
     // Median input velocity: the flat CC1 the original is auditioned with.
     int flatDynamics() const;

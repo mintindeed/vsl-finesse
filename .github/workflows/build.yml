@@ -59,7 +59,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure
       - name: Sign and notarize
         # Runs when the Developer ID secrets are set (they're never available to
-        # pull requests from forks). See README: "Signed builds".
+        # pull requests from forks). See docs/DEVELOPMENT.md: "Signed builds".
         if: steps.signing.outputs.available == 'true'
         env:
           MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}

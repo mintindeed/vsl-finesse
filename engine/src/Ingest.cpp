@@ -28,10 +28,12 @@ Part ingest (const Part& input, const InstrumentProfile& profile, const Settings
     std::stable_sort (out.keyswitches.begin(), out.keyswitches.end(),
                       [] (const Note& a, const Note& b) { return a.start < b.start; });
 
-    // 2. Existing CCs are wiped (the engine writes its own), except preserved ones.
+    // 2. Existing CCs are wiped (the engine writes its own), except preserved
+    //    ones, unless the user keeps them. Controllers the engine writes
+    //    replace kept ones later (writeControllers).
     for (const auto& c : input.controllers)
     {
-        if (profile.preservesController (c.controller))
+        if (settings.keepControllers || profile.preservesController (c.controller))
             out.controllers.push_back (c);
         else
             ++report.controllersRemoved;

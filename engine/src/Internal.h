@@ -27,6 +27,7 @@ struct NoteInfo
     int string = -1;           // string instruments: index into profile.openStrings
     double hairpin = 0.0;      // crescendo/diminuendo offset at the onset
     double phrasePosition = 0.0; // 0..1 within the phrase (by time)
+    int inputVelocity = 100;     // as written in the file
 
     // Dynamics, 0..1 scale (1 = MIDI 127).
     double base = 0.6;  // base dynamic before shaping
@@ -46,6 +47,7 @@ struct Context
     std::vector<std::vector<int>> articulationKeys;
     std::vector<Phrase> phrases;
     Report report;
+    std::vector<int> fileControllers; // controller numbers the file's kept CCs use
 
     // User markings, in seconds.
     struct TimedMarking
@@ -65,9 +67,18 @@ struct Context
 
     bool isShort (size_t note) const { return info[note].duration * 1000.0 < settings.shortNoteMs; }
 
+    // How the player says this note's articulation picks its layers. The
+    // Velocity preset type overrides it: that's the user's choice.
+    Articulation::Layers layersOf (size_t note) const
+    {
+        return settings.presetType == PresetType::Velocity ? Articulation::Layers::Unknown : articulationOf (note).layers;
+    }
+
     // Does CC1 drive this note's dynamic layers?
     bool crossfades (size_t note) const
     {
+        if (const auto l = layersOf (note); l != Articulation::Layers::Unknown)
+            return l == Articulation::Layers::Crossfade;
         switch (settings.presetType)
         {
             case PresetType::VelXF:        return true;
@@ -81,6 +92,8 @@ struct Context
     // (it may select something else, such as an attack variant).
     bool velocityIsDynamic (size_t note) const
     {
+        if (const auto l = layersOf (note); l != Articulation::Layers::Unknown)
+            return l == Articulation::Layers::Velocity;
         switch (settings.presetType)
         {
             case PresetType::VelXF:        return false;
@@ -97,11 +110,14 @@ double noise (uint32_t seed, uint64_t a, uint64_t b);
 double clamp01 (double v);
 double smoothstep (double x);
 
+void applyArticulationPicks (Context&, const ArticulationPicks&);
 void assignArticulations (Context&);
 void analyze (Context&);
 void shapeDynamics (Context&);
 void findPauses (Context&);
 void applyTiming (Context&);
 void writeControllers (Context&);
+void writeBlends (Context&);
+void writePerformControls (Context&);
 
 } // namespace vslf::detail

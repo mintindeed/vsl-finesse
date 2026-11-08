@@ -26,6 +26,10 @@ void settingsFromJson (const juce::var&, Settings& inOut);
 juce::var markingsToJson (const std::vector<Marking>&);
 std::vector<Marking> markingsFromJson (const juce::var&);
 
+// Picked articulations. Keys are written as note names (Logic's convention).
+juce::var articulationMarkingsToJson (const std::vector<ArticulationMarking>&);
+std::vector<ArticulationMarking> articulationMarkingsFromJson (const juce::var&);
+
 bool loadSettings (const juce::File&, Settings& inOut, std::string& error);
 bool saveSettings (const Settings&, const juce::File&, std::string& error);
 

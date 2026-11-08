@@ -17,6 +17,11 @@ void PianoRollView::changeListenerCallback (juce::ChangeBroadcaster*) { repaint(
 
 juce::Rectangle<int> PianoRollView::headerArea() const { return getLocalBounds().removeFromTop (headerHeight); }
 
+juce::Rectangle<int> PianoRollView::articulationsArea() const
+{
+    return getLocalBounds().removeFromTop (headerHeight).removeFromBottom (42).removeFromTop (20);
+}
+
 juce::Rectangle<int> PianoRollView::markingsArea() const
 {
     return getLocalBounds().removeFromTop (headerHeight).removeFromBottom (22);
@@ -88,9 +93,11 @@ void PianoRollView::paint (juce::Graphics& g)
     drawGrid (g, *track);
     drawSelection (g, *track);
     drawNotes (g, *track);
+    drawArticulations (g, *track);
     drawMarkings (g, *track);
     drawLane (g, *track, dynamicsArea(), track->profile.dynamicsCC, theme::dynamics,
-              "CC" + juce::String (track->profile.dynamicsCC) + " dynamics");
+              "CC" + juce::String (track->profile.dynamicsCC)
+                  + (track->settings.presetType == vslf::PresetType::Velocity ? juce::String() : juce::String (" dynamics")));
     if (track->profile.expressionCC >= 0)
         drawLane (g, *track, expressionArea(), track->profile.expressionCC, theme::expression,
                   "CC" + juce::String (track->profile.expressionCC) + " expression");
@@ -288,7 +295,8 @@ void PianoRollView::drawSelection (juce::Graphics& g, const Track& t)
     const auto& tempo = t.input.tempo;
     const float x1 = xForSeconds (tempo.secondsAt ((double) app.session.selectionStart));
     const float x2 = xForSeconds (tempo.secondsAt ((double) app.session.selectionEnd));
-    const juce::Rectangle<float> r (x1, (float) markingsArea().getY(), x2 - x1, (float) (getHeight() - markingsArea().getY()));
+    const auto top = articulationsArea().getY();
+    const juce::Rectangle<float> r (x1, (float) top, x2 - x1, (float) (getHeight() - top));
     g.setColour (theme::accent.withAlpha (0.12f));
     g.fillRect (r);
     g.setColour (theme::accent.withAlpha (0.6f));
@@ -315,6 +323,54 @@ int PianoRollView::markingAt (const Track& t, juce::Point<int> p) const
             return i;
     }
     return -1;
+}
+
+int PianoRollView::articulationAt (const Track& t, juce::Point<int> p) const
+{
+    if (! articulationsArea().contains (p))
+        return -1;
+    const auto& tempo = t.input.tempo;
+    for (int i = (int) t.articulationMarkings.size(); --i >= 0;)
+    {
+        const auto& m = t.articulationMarkings[(size_t) i];
+        if ((float) p.x >= xForSeconds (tempo.secondsAt ((double) m.start)) && (float) p.x <= xForSeconds (tempo.secondsAt ((double) m.end)))
+            return i;
+    }
+    return -1;
+}
+
+void PianoRollView::drawArticulations (juce::Graphics& g, const Track& t)
+{
+    const auto area = articulationsArea();
+    g.setColour (theme::panel.withAlpha (0.6f));
+    g.fillRect (area);
+
+    const auto& tempo = t.input.tempo;
+    for (const auto& m : t.articulationMarkings)
+    {
+        const float x1 = xForSeconds (tempo.secondsAt ((double) m.start));
+        const float x2 = xForSeconds (tempo.secondsAt ((double) m.end));
+        if (x2 < 0.0f || x1 > (float) getWidth())
+            continue;
+        const juce::Rectangle<float> r (x1 + 1.0f, (float) area.getY() + 2.0f, juce::jmax (2.0f, x2 - x1 - 2.0f), (float) area.getHeight() - 4.0f);
+        // A pick the loaded preset doesn't have writes nothing: shown as a warning.
+        const bool missing = t.isPickMissing (m);
+        g.setColour (theme::panelRaised);
+        g.fillRoundedRectangle (r, 3.0f);
+        g.setColour ((missing ? theme::warning : theme::accent).withAlpha (0.7f));
+        g.drawRoundedRectangle (r, 3.0f, 1.0f);
+        g.setColour (missing ? theme::warning : theme::text);
+        g.setFont (juce::FontOptions (11.5f));
+        g.drawText (juce::String (m.name) + (missing ? " (not in this preset)" : ""), r.reduced (5.0f, 0.0f),
+                    juce::Justification::centredLeft, true);
+    }
+
+    if (t.articulationMarkings.empty())
+    {
+        g.setColour (theme::textDim.withAlpha (0.7f));
+        g.setFont (juce::FontOptions (11.0f));
+        g.drawText ("Picked articulations appear here", area.reduced (6, 0), juce::Justification::centredLeft);
+    }
 }
 
 void PianoRollView::drawMarkings (juce::Graphics& g, const Track& t)
@@ -378,11 +434,31 @@ void PianoRollView::mouseDown (const juce::MouseEvent& e)
     dragStartX = (float) e.x;
     dragStartView = viewStart;
     selecting = false;
-    scrubbing = e.y < markingsArea().getY(); // the bar ruler moves the play position
+    scrubbing = e.y < articulationsArea().getY(); // the bar ruler moves the play position
 
     auto* track = app.session.selectedTrack();
     if (track == nullptr || ! track->hasMidi)
         return;
+
+    if (e.mods.isPopupMenu() && articulationsArea().contains (e.getPosition()))
+    {
+        const int index = articulationAt (*track, e.getPosition());
+        if (index < 0)
+            return;
+        juce::PopupMenu menu;
+        menu.addItem (1, "Remove this articulation");
+        juce::Component::SafePointer<PianoRollView> safe (this);
+        menu.showMenuAsync (juce::PopupMenu::Options(), [safe, index] (int result) {
+            if (safe == nullptr || result != 1)
+                return;
+            if (auto* t = safe->app.session.selectedTrack(); t != nullptr && index < (int) t->articulationMarkings.size())
+            {
+                t->articulationMarkings.erase (t->articulationMarkings.begin() + index);
+                safe->app.session.process (*t);
+            }
+        });
+        return;
+    }
 
     if (e.mods.isPopupMenu())
     {

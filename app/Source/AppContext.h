@@ -6,6 +6,7 @@
 #include "ProfileLibrary.h"
 #include "Session.h"
 
+#include <deque>
 #include <functional>
 #include <map>
 
@@ -31,6 +32,23 @@ public:
     bool exportFinessed (Track&, const juce::File&, juce::String& error);
     static bool isMidiFile (const juce::File&);
 
+    // What happens to controller data (CCs) already in a MIDI file when it's
+    // opened: always remove it, never remove it, or ask. The app's own CC1
+    // and CC11 replace the file's either way, where it writes them.
+    enum class FileControllers
+    {
+        Always, // remove
+        Never,  // keep
+        Ask
+    };
+    FileControllers fileControllers();
+    // Always and Never apply to the tracks already open, too.
+    void setFileControllers (FileControllers);
+    // Keeping the file's controllers: whether the app's own CC1 and CC11 still
+    // replace the file's (the default). Applies to every open track, too.
+    bool replaceFileDynamics();
+    void setReplaceFileDynamics (bool);
+
     // --- Instrument profiles and settings ----------------------------------
     void setProfile (Track&, const std::string& id);
     // Applies an edited profile to the track, saves it as the user's copy and
@@ -42,6 +60,9 @@ public:
     // nothing is selected. Clearing works the same way.
     void applyMarking (Track&, vslf::Marking);
     void clearMarkings (Track&);
+    // Picked articulations work the same way: the selection, or the whole part.
+    void applyArticulation (Track&, vslf::ArticulationMarking);
+    void clearArticulations (Track&);
     static vslf::Tick partEnd (const Track&);
     void saveDefaultSettings (const vslf::Settings&);
     vslf::Settings defaultSettings();
@@ -84,6 +105,12 @@ public:
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+
+    // Applies the FileControllers setting to a track whose MIDI file is new.
+    void decideControllers (Track&);
+    void askNextControllerQuestion();
+    std::deque<Track*> controllerQuestions;
+    bool askingControllers = false;
     void timerCallback() override;
     void closePluginWindow (Track*);
     void destroyPlugin (std::unique_ptr<juce::AudioPluginInstance>);

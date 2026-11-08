@@ -14,6 +14,18 @@ int Track::flatDynamics() const
     return v[v.size() / 2];
 }
 
+vslf::InstrumentProfile Track::engineProfile() const
+{
+    return vslf::io::withTree (profile, synchronArticulations, articulationStartKeys, dimensionControls, performControls);
+}
+
+bool Track::isPickMissing (const vslf::ArticulationMarking& m) const
+{
+    return ! synchronArticulations.empty()
+           && std::none_of (synchronArticulations.begin(), synchronArticulations.end(),
+                            [&] (const vslf::io::SynchronArticulation& a) { return a.name().toStdString() == m.name; });
+}
+
 Session::Session()
 {
     addTrack();
@@ -92,10 +104,28 @@ void Session::process (Track& t)
     if (! t.hasMidi)
         return;
 
-    t.result = vslf::finesse (t.input, t.profile, t.settings, t.markings);
+    // The loaded preset's tree says which level each key is on and what it's
+    // called. Picks are looked up again by name in it.
+    const auto profile = t.engineProfile();
+    std::vector<std::string> missing;
+    vslf::ArticulationPicks picks;
+    picks.markings = vslf::io::resolvePicks (t.articulationMarkings, t.synchronArticulations, missing);
+    picks.startKeys = t.articulationStartKeys;
 
-    auto original = PlaybackSequence::build (t.input, t.profile, t.flatDynamics());
-    auto finessed = PlaybackSequence::build (t.result.part, t.profile, t.flatDynamics());
+    // Without a tree, the picks name their own key combinations.
+    auto named = profile;
+    if (t.synchronArticulations.empty())
+        for (const auto& m : picks.markings)
+            if (const auto* found = named.findArticulation (m.keys); found == nullptr || found->keys.size() != m.keys.size())
+                named.articulations.push_back ({ m.keys, { m.name, 0.0, {}, {} } });
+
+    t.result = vslf::finesse (t.input, named, t.settings, t.markings, picks);
+    for (const auto& name : missing)
+        t.result.report.warnings.push_back ("\"" + name + "\" isn't in the loaded Synchron preset, so no keyswitches are written for it. "
+                                            "Pick another articulation for that passage, or remove it.");
+
+    auto original = PlaybackSequence::build (t.input, profile, t.flatDynamics());
+    auto finessed = PlaybackSequence::build (t.result.part, profile, t.flatDynamics());
 
     {
         const juce::ScopedLock sl (audioLock);

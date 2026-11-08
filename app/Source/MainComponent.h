@@ -44,6 +44,7 @@ private:
     void chooseMidi (Track&);
     void exportSelected();
     void showAudioSettings();
+    void showSettings();
     void saveSession (bool saveAs);
     void openSessionDialog();
     void showError (const juce::String& title, const juce::String& message);
