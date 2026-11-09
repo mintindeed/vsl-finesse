@@ -63,8 +63,8 @@ This file is for every agent working on the repository (`AGENTS.md` is a link to
 - `cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure`
 - The engine (`engine/`) has no dependencies; add a unit test in `tests/` for every engine behaviour change.
 
-## GitHub Actions minutes
+## Continuous integration
 
-The repository is private, so Actions minutes are billed, and macOS minutes count ten times. Builds run on pull requests only (not on plain pushes or merges to `main`), and every push to a branch with an open pull request starts one. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. A newer push cancels a running build on the same pull request.
+The repository is public, so GitHub's standard runners (macOS included) cost nothing, but a macOS build still takes about seven minutes and shares the repository's runners with everyone else's pull requests. Builds run on pull requests only (not on plain pushes or merges to `main`), and every push to a branch with an open pull request starts one. Build and test locally first, batch related changes into one push, and don't push just to re-trigger a build. A newer push cancels a running build on the same pull request.
 
 For pull requests, GitHub checks `paths-ignore` against the whole pull request (everything since it branched from `main`), not against the latest push. Only a pull request that changes nothing but documentation (`*.md`, `docs/`) skips the build. Once a pull request contains code, every push to it builds both jobs, macOS included, even a push that only fixes a typo in a doc. So hold documentation fixes for a pull request that has code until its next code push, or put them in a pull request of their own.
