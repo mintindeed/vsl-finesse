@@ -13,8 +13,9 @@ public:
 
     void initialise (const juce::String& commandLine) override
     {
-        auto& lnf = juce::LookAndFeel::getDefaultLookAndFeel();
-        lnf.setColour (juce::ResizableWindow::backgroundColourId, theme::background);
+        // JUCE's widgets (buttons, menus, sliders, alerts, tooltips) take their colours from this.
+        lookAndFeel.setColourScheme (theme::colourScheme());
+        juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
 
         context = std::make_unique<AppContext>();
         window = std::make_unique<MainWindow> (getApplicationName(), *context);
@@ -25,6 +26,7 @@ public:
     {
         window.reset();
         context.reset();
+        juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
     }
 
     void systemRequestedQuit() override { quit(); }
@@ -76,6 +78,7 @@ private:
         MainComponent* content = nullptr;
     };
 
+    juce::LookAndFeel_V4 lookAndFeel; // declared first: outlives every component
     std::unique_ptr<AppContext> context;
     std::unique_ptr<MainWindow> window;
 };

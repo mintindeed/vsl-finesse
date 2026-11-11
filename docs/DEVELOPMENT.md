@@ -39,7 +39,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-Options: `VSLF_BUILD_APP`, `VSLF_BUILD_CLI` and `VSLF_BUILD_TESTS` (all on). The app is made for macOS but builds on Linux too, which is handy for a quick look at the UI; there it needs JUCE's Linux dependencies (ALSA, X11, FreeType, fontconfig: see the `apt-get` line in [`.github/workflows/build.yml`](../.github/workflows/build.yml)). With `-DVSLF_BUILD_APP=OFF` only the engine, the command line tool and the tests are built.
+Options: `VSLF_BUILD_APP`, `VSLF_BUILD_CLI` and `VSLF_BUILD_TESTS` (all on). The app is made for macOS but builds on Linux too, which is handy for a quick look at the UI; there it needs JUCE's Linux dependencies (on Ubuntu: `sudo apt-get install ninja-build libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libxi-dev libasound2-dev`). With `-DVSLF_BUILD_APP=OFF` only the engine, the command line tool and the tests are built, and of these packages they need only `libfreetype-dev` and `libfontconfig1-dev` (for juceaide, the helper JUCE builds while configuring).
 
 ## Testing
 
@@ -177,6 +177,7 @@ Plain C++ with no dependencies, so it can be built and tested anywhere. `vslf::f
 - `AudioEngine`: renders every track through its plug-in and mixes them. It chases keyswitches and controllers when playback starts mid-part or A/B switches, sends note-offs on stop, and is the plug-ins' play head.
 - `PlaybackSequence`: an immutable, time-sorted event list built from a part.
 - UI: `MainComponent` (window, menus, Settings), `TrackListView`, `DynamicsBar` (articulation picker and dynamics buttons), `PianoRollView`, `InspectorPanel`, `WelcomeOverlay`.
+- Colours: all of them are in `Theme.h` (the "wine" palette; comments name each palette token). JUCE's own widgets (buttons, menus, sliders, tooltips, alerts) get theirs from `theme::colourScheme()`, which `Main.cpp` installs as the default look and feel, so a widget only sets a colour of its own when it should differ from the rest (the Welcome screen's button, solo). Articulation colours are cycled by index and the Inspector's swatches use the same ones.
 - Multitrack is already in the data model and audio engine; the UI shows one row per track.
 
 ## Instrument profiles
@@ -281,7 +282,7 @@ To see the icon as macOS draws it, without Finder's cache in the way: render the
 ## Continuous integration
 
 [`.github/workflows/build.yml`](../.github/workflows/build.yml) runs on pull requests (and by hand from the Actions tab), not on plain pushes or merges to `main`. Every push to a branch with an open pull request starts a build; a newer push cancels a running one. Two jobs:
-- **Engine tests (Linux):** builds the engine, command line tool and tests, and runs the tests.
+- **Engine tests (Linux):** builds the engine, command line tool and tests, and runs the tests. It installs only FreeType and fontconfig, which JUCE's juceaide helper needs, and uses Make rather than Ninja, so it downloads as little as possible from Ubuntu's package mirrors. When those mirrors are down the job still fails, in "Install dependencies".
 - **macOS app:** builds a universal app (arm64 + x86_64), runs the tests, then signs and notarizes it if the secrets are set (or ad-hoc signs it if not), and uploads **VSL-Finesse-macOS**.
 
 The repository is public, so GitHub's standard runners, macOS included, are free ([GitHub: GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)). A macOS build still takes about seven minutes and shares the repository's runners with every other pull request, so build and test locally first, batch related changes into one push, and don't push just to re-trigger a build.

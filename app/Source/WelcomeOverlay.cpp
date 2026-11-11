@@ -107,7 +107,7 @@ WelcomeOverlay::WelcomeOverlay (bool synchronInstalled) : text (std::make_unique
     viewport.setScrollBarsShown (true, false);
     addAndMakeVisible (viewport);
 
-    okButton.setColour (juce::TextButton::buttonColourId, theme::accent.darker (0.3f));
+    okButton.setColour (juce::TextButton::buttonColourId, theme::brand);
     okButton.onClick = [this] {
         if (onDismiss)
             onDismiss();
@@ -126,7 +126,7 @@ juce::Rectangle<int> WelcomeOverlay::cardBounds() const
 
 void WelcomeOverlay::paint (juce::Graphics& g)
 {
-    g.fillAll (juce::Colours::black.withAlpha (0.6f));
+    g.fillAll (theme::background.withAlpha (0.7f));
 
     const auto card = cardBounds().toFloat();
     g.setColour (theme::panel);

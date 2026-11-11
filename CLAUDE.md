@@ -24,6 +24,7 @@ Before committing, check every place listed for the kind of change you made. Sev
 | You changed | Update |
 |---|---|
 | How the app performs (any engine behaviour or constant) | `docs/METHODOLOGY.md`: the section and its numbers, and the "Step by step" table if a stage changed. The comment at the top of the engine file. `CHANGELOG.md`. `README.md` only if what the user does or sees changes. |
+| Colours | `app/Source/Theme.h` only: components use `theme::` colours, never literals or `juce::Colours`, and JUCE's widgets take theirs from `theme::colourScheme()` there. **Both** `README.md` where it names a colour (a pick the preset doesn't have "turns orange": `theme::warning`). `CHANGELOG.md`. |
 | What the user does or sees (UI, menus, settings, dialogs, tooltips) | `README.md` Usage, and **both** the app's own text that says the same thing: `WelcomeOverlay.cpp`, the Settings window in `MainComponent.cpp`, dialogs in `AppContext.cpp`, tooltips. `CHANGELOG.md`. |
 | macOS permissions | **All of**: README "Permissions macOS asks for", `WelcomeOverlay.cpp`, the Info.plist purpose strings (`PLIST_TO_MERGE` in `app/CMakeLists.txt`), DEVELOPMENT "macOS permissions". |
 | Something learned about Synchron Player (a new preset dump) | A fixture in `tests/SynchronTrees.h` and a test, **both** DEVELOPMENT "Synchron Player's saved state" (including the presets table), and METHODOLOGY if it changes what the app does. If it changes what a tester has to do or know (when the state is read, what's captured at preset load, the dump format), DEVELOPMENT "Testing with your own library" and `scripts/synchron-state.py`. |
@@ -63,6 +64,7 @@ This file is for every agent working on the repository (`AGENTS.md` is a link to
 
 - `cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure`
 - The engine (`engine/`) has no dependencies; add a unit test in `tests/` for every engine behaviour change.
+- JUCE builds its juceaide helper while CMake configures, and juceaide links `juce_graphics`, so even a build with `-DVSLF_BUILD_APP=OFF` needs FreeType and fontconfig headers on Linux. Checking the project's own build for which packages it uses misses this: check the configure step on a machine without them.
 
 ## Continuous integration
 
