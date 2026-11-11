@@ -20,11 +20,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      # No apt-get: without the app, the engine, command line tool and tests
-      # only use JUCE's core and audio_basics modules, which need nothing that
-      # isn't on the runner already. Installing packages here made the job
-      # depend on Ubuntu's mirrors, and it failed whenever they were down.
-      # Make (on the runner) instead of Ninja (which would come from apt).
+      # Without the app, the engine, command line tool and tests only use
+      # JUCE's core and audio_basics modules, which need no Linux packages.
+      # But JUCE builds its juceaide helper while configuring, and that links
+      # juce_graphics, which needs FreeType and fontconfig. Those two are all
+      # this job installs, so a slow Ubuntu mirror costs as little as it can.
+      # Make (already on the runner) instead of Ninja, which would come from apt.
+      - name: Install dependencies
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y libfreetype-dev libfontconfig1-dev
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DVSLF_BUILD_APP=OFF
       - name: Build
