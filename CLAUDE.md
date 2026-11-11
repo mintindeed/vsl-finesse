@@ -32,6 +32,7 @@ Before committing, check every place listed for the kind of change you made. Sev
 | What the app has been tried with (VSL products, DAWs) or a known gap | README "What it works with, and where help is welcome" only; CONTRIBUTING links to it. |
 | Command line options | **both** `usage()` in `cli/Main.cpp` and DEVELOPMENT "Command line tool" (kept identical). |
 | Code structure, files, build, file formats | `docs/DEVELOPMENT.md` (Project layout, Architecture, the format sections). |
+| The app icon | **Both** forms of the drawing in `app/Resources/`: the layer SVGs in `AppIcon.icon/Assets/` and `Icon.svg`. DEVELOPMENT "App icon". `CHANGELOG.md`. Don't add JUCE's `ICON_SMALL` (macOS 26 misreads it). |
 | A design decision or principle | CONTRIBUTING "Principles". |
 | A planned feature, or one that shipped | CONTRIBUTING "Roadmap": add it, or remove it once built (it's then documented in README and METHODOLOGY). |
 | Versioning, changelog or CI rules | **both** this file and DEVELOPMENT ("Versions and the changelog", "Continuous integration"). CONTRIBUTING only links to them. |

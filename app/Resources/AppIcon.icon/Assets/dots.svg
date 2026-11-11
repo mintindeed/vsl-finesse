@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VSL Finesse icon, middle layer: seven dots under the curves.
+     Icon.svg repeats them: change them together. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g fill="#7d5f66">
+    <circle cx="170" cy="887" r="19"/>
+    <circle cx="284" cy="887" r="19"/>
+    <circle cx="398" cy="887" r="19"/>
+    <circle cx="512" cy="887" r="19"/>
+    <circle cx="626" cy="887" r="19"/>
+    <circle cx="740" cy="887" r="19"/>
+    <circle cx="854" cy="887" r="19"/>
+  </g>
+</svg>

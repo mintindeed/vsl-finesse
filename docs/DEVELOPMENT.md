@@ -14,6 +14,7 @@ Technical documentation for working on the app: building, testing, how the code 
 - [Synchron Player's saved state](#synchron-players-saved-state)
 - [How the app uses Synchron's state](#how-the-app-uses-synchrons-state)
 - [macOS permissions](#macos-permissions)
+- [App icon](#app-icon)
 - [Versions and the changelog](#versions-and-the-changelog)
 - [Continuous integration](#continuous-integration)
 - [Signed builds](#signed-builds)
@@ -252,6 +253,22 @@ All of it is read by `io/SynchronState.cpp`; nothing is per instrument.
 ## macOS permissions
 
 Plug-ins run inside the app, so macOS attributes their file, network and keyboard access to VSL Finesse. The app's own code (and JUCE, as configured) uses no network, Bonjour or global keyboard APIs; the local network and Input Monitoring prompts come from the hosted plug-in. The app explains them in a first-run overlay (`WelcomeOverlay`, shown again when `welcomeVersion` in `MainComponent.cpp` is bumped) and in Info.plist purpose strings (`PLIST_TO_MERGE` in `app/CMakeLists.txt`; Input Monitoring has no purpose string).
+
+## App icon
+
+The icon is three layers of a phrase curve (a slow rise, a peak past the middle, a quicker fall) over seven dots, on the wine palette's brand colour. It's drawn as SVG in `app/Resources/`, in two forms that must stay the same drawing:
+
+- `AppIcon.icon`: an Icon Composer bundle (`icon.json` and one SVG per layer in `Assets/`: `curves.svg`, `dots.svg`, `background.svg`). The layers are drawn edge to edge on a 1024-pixel canvas; macOS cuts the shape out. The format is the one Apple's Icon Composer writes (JUCE's own example apps ship bundles like it), though this one was written by hand and hasn't been opened in Icon Composer yet. The curves and dots have Liquid Glass and its highlight turned off (`"glass" : false`, `"specular" : false`), so they keep their colours instead of turning glassy white.
+- `Icon.svg`: the same layers scaled into Apple's standard 824-pixel rounded square with margins and a shadow, for builds without Xcode 26.
+
+Which one a build uses depends on its Xcode. JUCE's `ICON_COMPOSER_BUNDLE` runs `actool` after the build. With `actool` 26 or later (Xcode 26) it writes `Assets.car` (what macOS 26 shows; its dark and tinted looks haven't been checked) and an `AppIcon.icns` for earlier macOS, replacing JUCE's. With an older Xcode it warns and skips that, and the app keeps the `AppIcon.icns` JUCE makes from `Icon.svg` (`ICON_BIG`) while CMake configures; `app/CMakeLists.txt` makes an edit to `Icon.svg` configure again. On macOS 26 both look right: macOS 26.6 drew the `Icon.svg` build in its own shape, not in the grey frame it gives old-style icons.
+
+Two pitfalls, both found by trying:
+
+- **No `ICON_SMALL`.** JUCE stores an icon 32 pixels wide as an `icp5` entry, which macOS 26 (and `iconutil`) read as noise, and macOS then shows that noise, scaled up, in a grey frame. Only `ICON_BIG` is given, so JUCE writes the 1024- and 512-pixel entries (`ic10`, `ic09`).
+- **The corner pixels in `Icon.svg`.** JUCE scales the drawing's bounds, not the SVG's canvas, to the icon size, so without something in the corners the margins disappear and the icon is drawn bigger than other apps'. A fully transparent shape doesn't help (JUCE's SVG reader leaves it out), so two 1-pixel squares at 1% opacity mark the corners.
+
+To see the icon as macOS draws it, without Finder's cache in the way: render the `.icns` or the built app with `NSWorkspace.shared.icon(forFile:)` from a short Swift script, at a few sizes. At 16 and 32 pixels macOS 26 adds a light rim to every app's icon, not only this one.
 
 ## Versions and the changelog
 
