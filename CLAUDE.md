@@ -63,6 +63,7 @@ This file is for every agent working on the repository (`AGENTS.md` is a link to
 
 - `cmake -S . -B build -G Ninja && cmake --build build && ctest --test-dir build --output-on-failure`
 - The engine (`engine/`) has no dependencies; add a unit test in `tests/` for every engine behaviour change.
+- JUCE builds its juceaide helper while CMake configures, and juceaide links `juce_graphics`, so even a build with `-DVSLF_BUILD_APP=OFF` needs FreeType and fontconfig headers on Linux. Checking the project's own build for which packages it uses misses this: check the configure step on a machine without them.
 
 ## Continuous integration
 
