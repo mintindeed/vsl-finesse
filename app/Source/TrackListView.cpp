@@ -52,8 +52,9 @@ public:
             addAndMakeVisible (b);
             b->setClickingTogglesState (true);
         }
-        muteButton.setColour (juce::TextButton::buttonOnColourId, juce::Colours::orange.darker());
-        soloButton.setColour (juce::TextButton::buttonOnColourId, juce::Colours::gold.darker());
+        // Mute takes the usual toggled colour; solo stands out in the notes' peach.
+        soloButton.setColour (juce::TextButton::buttonOnColourId, theme::noteFill);
+        soloButton.setColour (juce::TextButton::textColourOnId, theme::background);
         muteButton.onClick = [this] { setFlag (true, muteButton.getToggleState()); };
         soloButton.onClick = [this] { setFlag (false, soloButton.getToggleState()); };
 
@@ -91,7 +92,7 @@ public:
         g.fillRect (getLocalBounds());
         if (selected)
         {
-            g.setColour (theme::accent);
+            g.setColour (theme::highlight);
             g.fillRect (0, 0, 3, getHeight());
         }
         g.setColour (theme::outline);

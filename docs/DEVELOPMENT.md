@@ -176,6 +176,7 @@ Plain C++ with no dependencies, so it can be built and tested anywhere. `vslf::f
 - `AudioEngine`: renders every track through its plug-in and mixes them. It chases keyswitches and controllers when playback starts mid-part or A/B switches, sends note-offs on stop, and is the plug-ins' play head.
 - `PlaybackSequence`: an immutable, time-sorted event list built from a part.
 - UI: `MainComponent` (window, menus, Settings), `TrackListView`, `DynamicsBar` (articulation picker and dynamics buttons), `PianoRollView`, `InspectorPanel`, `WelcomeOverlay`.
+- Colours: all of them are in `Theme.h` (the "wine" palette; comments name each palette token). JUCE's own widgets (buttons, menus, sliders, tooltips, alerts) get theirs from `theme::colourScheme()`, which `Main.cpp` installs as the default look and feel, so a widget only sets a colour of its own when it should differ from the rest (the Welcome screen's button, solo). Articulation colours are cycled by index and the Inspector's swatches use the same ones.
 - Multitrack is already in the data model and audio engine; the UI shows one row per track.
 
 ## Instrument profiles

@@ -145,7 +145,7 @@ void PianoRollView::drawGrid (juce::Graphics& g, const Track& t)
             const float x = xForSeconds (s);
             if (x < -50.0f)
                 continue;
-            g.setColour (theme::outline.withAlpha (0.6f));
+            g.setColour (theme::grid);
             g.drawVerticalLine ((int) x, (float) header.getBottom(), (float) getHeight());
             if ((barNumber - 1) % labelEvery == 0)
             {
@@ -164,7 +164,7 @@ void PianoRollView::drawGrid (juce::Graphics& g, const Track& t)
         const float x2 = xForSeconds (p.endSeconds);
         if (x2 >= 0.0f && x1 <= (float) getWidth())
         {
-            g.setColour (theme::accent.withAlpha (index % 2 == 0 ? 0.35f : 0.2f));
+            g.setColour (theme::highlight.withAlpha (index % 2 == 0 ? 0.6f : 0.35f));
             g.fillRoundedRectangle (x1, (float) header.getY() + 18.0f, juce::jmax (2.0f, x2 - x1), 6.0f, 3.0f);
         }
         ++index;
@@ -207,7 +207,7 @@ void PianoRollView::drawNotes (juce::Graphics& g, const Track& t)
     for (int p = lo; p <= hi; ++p)
         if (p % 12 == 0)
         {
-            g.setColour (theme::outline.withAlpha (0.4f));
+            g.setColour (theme::grid);
             g.drawHorizontalLine ((int) (yFor (p) + rowHeight), (float) area.getX(), (float) area.getRight());
             g.setColour (theme::textDim);
             g.drawText (vslf::noteName (p), area.getX() + 2, (int) yFor (p), 30, (int) rowHeight, juce::Justification::left);
@@ -215,7 +215,7 @@ void PianoRollView::drawNotes (juce::Graphics& g, const Track& t)
 
     // Original notes as outlines, so timing changes are visible.
     const auto& inTempo = t.input.tempo;
-    g.setColour (theme::original.withAlpha (0.7f));
+    g.setColour (theme::original.withAlpha (0.5f));
     for (const auto& n : t.input.notes)
     {
         if (t.profile.isKeyswitch (n.pitch) || n.pitch < lo || n.pitch > hi)
@@ -297,9 +297,9 @@ void PianoRollView::drawSelection (juce::Graphics& g, const Track& t)
     const float x2 = xForSeconds (tempo.secondsAt ((double) app.session.selectionEnd));
     const auto top = articulationsArea().getY();
     const juce::Rectangle<float> r (x1, (float) top, x2 - x1, (float) (getHeight() - top));
-    g.setColour (theme::accent.withAlpha (0.12f));
+    g.setColour (theme::selected.withAlpha (0.35f));
     g.fillRect (r);
-    g.setColour (theme::accent.withAlpha (0.6f));
+    g.setColour (theme::highlight.withAlpha (0.8f));
     g.drawVerticalLine ((int) x1, r.getY(), r.getBottom());
     g.drawVerticalLine ((int) x2, r.getY(), r.getBottom());
 }
@@ -357,7 +357,7 @@ void PianoRollView::drawArticulations (juce::Graphics& g, const Track& t)
         const bool missing = t.isPickMissing (m);
         g.setColour (theme::panelRaised);
         g.fillRoundedRectangle (r, 3.0f);
-        g.setColour ((missing ? theme::warning : theme::accent).withAlpha (0.7f));
+        g.setColour ((missing ? theme::warning : theme::highlight).withAlpha (0.8f));
         g.drawRoundedRectangle (r, 3.0f, 1.0f);
         g.setColour (missing ? theme::warning : theme::text);
         g.setFont (juce::FontOptions (11.5f));

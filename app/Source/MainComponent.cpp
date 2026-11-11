@@ -135,7 +135,6 @@ MainComponent::MainComponent (AppContext& a) : app (a)
     {
         b->setClickingTogglesState (true);
         b->setRadioGroupId (1001);
-        b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
     }
     originalButton.setConnectedEdges (juce::Button::ConnectedOnRight);
     finessedButton.setConnectedEdges (juce::Button::ConnectedOnLeft);
@@ -221,9 +220,9 @@ void MainComponent::paintOverChildren (juce::Graphics& g)
 {
     if (dragOver)
     {
-        g.setColour (theme::accent.withAlpha (0.15f));
+        g.setColour (theme::selected.withAlpha (0.25f));
         g.fillRect (getLocalBounds());
-        g.setColour (theme::accent);
+        g.setColour (theme::highlight);
         g.drawRect (getLocalBounds(), 3);
     }
 }
