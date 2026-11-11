@@ -4,6 +4,12 @@ juce_add_gui_app (VSLFinesseApp
     BUNDLE_ID "io.github.mintindeed.vslfinesse"
     VERSION "${PROJECT_VERSION}"
     DOCUMENT_EXTENSIONS mid midi vslfsession vslpsession
+    # The app icon. With Xcode 26 or later, actool compiles the Icon Composer
+    # bundle (what macOS 26 shows) and an .icns for earlier macOS. With an older
+    # Xcode, JUCE makes the .icns from Icon.svg. No ICON_SMALL: JUCE stores a
+    # 32-pixel icon as 'icp5', which macOS 26 misreads. See docs/DEVELOPMENT.md.
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icon.svg"
+    ICON_COMPOSER_BUNDLE "${CMAKE_CURRENT_SOURCE_DIR}/Resources/AppIcon.icon"
     HARDENED_RUNTIME_ENABLED FALSE
     APP_SANDBOX_ENABLED FALSE
     # Shown in macOS's own permission prompts. Instrument plug-ins run inside
@@ -26,6 +32,11 @@ juce_add_gui_app (VSLFinesseApp
     <string>VSL Finesse doesn't use the network itself. Vienna's software inside it asks for this. You can deny it.</string>
   </dict>
 </plist>]])
+
+# JUCE makes its .icns while CMake configures, so editing Icon.svg has to
+# configure again.
+set_property (DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Icon.svg")
 
 target_sources (VSLFinesseApp PRIVATE
     Source/AppContext.cpp

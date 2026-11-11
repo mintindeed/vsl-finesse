@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **An app icon**: three layers of a phrase curve, rising slowly, peaking past the middle and falling away, in cream and pink on dark wine. On macOS 26 it takes the system's own icon shape.
+
 ## [0.5.0] - 2026-11-07
 
 ### Added

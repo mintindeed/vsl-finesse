@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VSL Finesse icon, front layer: three layers of one phrase curve, a slow
+     rise, a peak past the middle and a quicker fall. The top one runs from
+     cream into the CC1 pink. Icon.svg repeats these paths: change them
+     together. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="phrase" x1="85" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffdccb"/>
+      <stop offset="1" stop-color="#ff9aa8"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <path d="M102,783 C250,775 450,632 617,632 C760,632 850,740 942,783" stroke="#8e6b71" stroke-width="20"/>
+    <path d="M102,738 C250,722 440,450 617,450 C760,450 850,660 942,738" stroke="#e8cdb8" stroke-width="32"/>
+    <path d="M85,696 C240,672 420,221 617,221 C770,221 860,560 944,696" stroke="url(#phrase)" stroke-width="55"/>
+  </g>
+</svg>

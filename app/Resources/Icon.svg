@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VSL Finesse icon, used when the app is built without Xcode 26 (JUCE's
+     ICON_BIG); otherwise actool makes every icon from AppIcon.icon. The
+     artwork is AppIcon.icon's three layers inside Apple's standard 824-pixel
+     rounded square, with a shadow: change them together. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="wine" x1="0" y1="100" x2="0" y2="924" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4a1428"/>
+      <stop offset="1" stop-color="#1a0a11"/>
+    </linearGradient>
+    <linearGradient id="phrase" x1="85" y1="0" x2="944" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffdccb"/>
+      <stop offset="1" stop-color="#ff9aa8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- JUCE scales what's drawn, not the canvas, so two all-but-invisible
+       pixels in opposite corners keep Apple's margins. Fully transparent
+       shapes don't work: JUCE's SVG reader leaves them out. -->
+  <g fill="#000000" fill-opacity="0.01">
+    <rect x="0" y="0" width="1" height="1"/>
+    <rect x="1023" y="1023" width="1" height="1"/>
+  </g>
+
+  <!-- A soft shadow, layered by hand: JUCE's SVG reader has no blur. -->
+  <g fill="#000000">
+    <rect x="88" y="104" width="848" height="848" rx="197" fill-opacity="0.04"/>
+    <rect x="93" y="104" width="838" height="838" rx="192" fill-opacity="0.06"/>
+    <rect x="97" y="103" width="830" height="830" rx="188" fill-opacity="0.10"/>
+  </g>
+
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#wine)"/>
+
+  <g transform="translate(100 100) scale(0.8046875)">
+    <g fill="#7d5f66">
+      <circle cx="170" cy="887" r="19"/>
+      <circle cx="284" cy="887" r="19"/>
+      <circle cx="398" cy="887" r="19"/>
+      <circle cx="512" cy="887" r="19"/>
+      <circle cx="626" cy="887" r="19"/>
+      <circle cx="740" cy="887" r="19"/>
+      <circle cx="854" cy="887" r="19"/>
+    </g>
+    <g fill="none" stroke-linecap="round">
+      <path d="M102,783 C250,775 450,632 617,632 C760,632 850,740 942,783" stroke="#8e6b71" stroke-width="20"/>
+      <path d="M102,738 C250,722 440,450 617,450 C760,450 850,660 942,738" stroke="#e8cdb8" stroke-width="32"/>
+      <path d="M85,696 C240,672 420,221 617,221 C770,221 860,560 944,696" stroke="url(#phrase)" stroke-width="55"/>
+    </g>
+  </g>
+</svg>
