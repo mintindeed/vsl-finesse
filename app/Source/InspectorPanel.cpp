@@ -129,7 +129,6 @@ public:
             auto* b = presetButtons.add (new juce::TextButton (vslf::displayName (types[i])));
             b->setClickingTogglesState (true);
             b->setRadioGroupId (2001);
-            b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
             b->setConnectedEdges ((i > 0 ? juce::Button::ConnectedOnLeft : 0) | (i < 2 ? juce::Button::ConnectedOnRight : 0));
             const auto type = types[i];
             b->onClick = [this, b, type] {
@@ -206,7 +205,6 @@ public:
             b->setTooltip (characterTips[i]);
             b->setClickingTogglesState (true);
             b->setRadioGroupId (2002);
-            b->setColour (juce::TextButton::buttonOnColourId, theme::accent.darker (0.3f));
             b->setConnectedEdges ((i > 0 ? juce::Button::ConnectedOnLeft : 0) | (i < 2 ? juce::Button::ConnectedOnRight : 0));
             b->onClick = [this, b, i] {
                 if (! b->getToggleState())

@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+- **New colours.** The app is now dressed in a dark wine palette instead of blue-grey and amber: deep wine-black backgrounds, warm cream text, and a wine red for selected bars, toggled buttons and the selected track. The dynamics line (CC1) is pink, the expression line (CC11) is blue and the play head is a pale cream. Notes are still coloured by articulation, starting from peach. Buttons, menus, sliders and tooltips now match the rest of the app. A pick the loaded preset doesn't have is still shown in orange, and solo lights up in peach.
+
 ## [0.5.0] - 2026-11-07
 
 ### Added

@@ -1,4 +1,5 @@
 #include "AppContext.h"
+#include "Theme.h"
 
 #include <JsonIO.h>
 #include <MidiIO.h>
@@ -12,7 +13,7 @@ class AppContext::PluginWindow : public juce::DocumentWindow
 {
 public:
     PluginWindow (juce::AudioProcessorEditor* editor, const juce::String& title, std::function<void()> onClose)
-        : DocumentWindow (title, juce::Colours::darkgrey, DocumentWindow::closeButton | DocumentWindow::minimiseButton),
+        : DocumentWindow (title, theme::background, DocumentWindow::closeButton | DocumentWindow::minimiseButton),
           closeCallback (std::move (onClose))
     {
         setUsingNativeTitleBar (true);
